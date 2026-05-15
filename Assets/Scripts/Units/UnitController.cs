@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public enum UnitTeam
 {
@@ -30,8 +31,11 @@ public class UnitController : MonoBehaviour
 
     [Header("Movement Foundation")]
     [SerializeField] private float movement = 220f;
+    [SerializeField] private float maxMovement = 220f;
     [SerializeField] private float moveSpeed = 100f;
     [SerializeField] private float slopeRange = 45f;
+    [SerializeField] private float movementUnitToWorldUnit = 0.01f;
+    [SerializeField] private float sideViewPlaneZ;
 
     private UnitView view;
 
@@ -44,6 +48,8 @@ public class UnitController : MonoBehaviour
     public int Shield => shield;
     public float LocalAngle => localAngle;
     public float Movement => movement;
+    public float RemainingMovement => movement;
+    public float MaxMovement => maxMovement;
     public float MoveSpeed => moveSpeed;
     public float SlopeRange => slopeRange;
 
@@ -58,19 +64,38 @@ public class UnitController : MonoBehaviour
         RefreshView();
     }
 
+    private void Update()
+    {
+        if (!isActiveTurn)
+        {
+            return;
+        }
+
+        float horizontalInput = ReadHorizontalInput();
+        TryMoveHorizontal(horizontalInput, Time.deltaTime);
+    }
+
     private void OnValidate()
     {
         localAngle = Mathf.Clamp(localAngle, -90f, 90f);
         hp = Mathf.Max(0, hp);
         shield = Mathf.Max(0, shield);
-        movement = Mathf.Max(0f, movement);
+        maxMovement = Mathf.Max(0f, maxMovement);
+        movement = Mathf.Clamp(movement, 0f, maxMovement);
         moveSpeed = Mathf.Max(0f, moveSpeed);
         slopeRange = Mathf.Clamp(slopeRange, 0f, 90f);
+        movementUnitToWorldUnit = Mathf.Max(0f, movementUnitToWorldUnit);
     }
 
     public void SetActiveTurn(bool active)
     {
+        bool becameActive = active && !isActiveTurn;
         isActiveTurn = active;
+        if (becameActive)
+        {
+            ResetMovement();
+        }
+
         RefreshView();
     }
 
@@ -85,6 +110,31 @@ public class UnitController : MonoBehaviour
         localAngle = Mathf.Clamp(newLocalAngle, -90f, 90f);
     }
 
+    public bool TryMoveHorizontal(float direction, float deltaTime)
+    {
+        if (!isActiveTurn || Mathf.Approximately(direction, 0f))
+        {
+            return false;
+        }
+
+        float signedDirection = Mathf.Sign(direction);
+        SetFacing(signedDirection < 0f ? UnitFacing.Left : UnitFacing.Right);
+
+        if (movement <= 0f || moveSpeed <= 0f || movementUnitToWorldUnit <= 0f || deltaTime <= 0f)
+        {
+            return false;
+        }
+
+        float movementCost = Mathf.Min(moveSpeed * deltaTime, movement);
+        Vector3 nextPosition = transform.position;
+        nextPosition.x += signedDirection * movementCost * movementUnitToWorldUnit;
+        nextPosition.z = sideViewPlaneZ;
+        transform.position = nextPosition;
+
+        movement -= movementCost;
+        return movementCost > 0f;
+    }
+
     public void ApplyVehicleData()
     {
         if (vehicleData == null)
@@ -95,8 +145,14 @@ public class UnitController : MonoBehaviour
         hp = vehicleData.MaxHp;
         shield = vehicleData.MaxShield;
         moveSpeed = vehicleData.MoveSpeed;
-        movement = vehicleData.MaxMovement;
+        maxMovement = vehicleData.MaxMovement;
+        movement = maxMovement;
         slopeRange = vehicleData.SlopeRange;
+    }
+
+    public void ResetMovement()
+    {
+        movement = maxMovement;
     }
 
     private void RefreshView()
@@ -107,5 +163,24 @@ public class UnitController : MonoBehaviour
         }
 
         view?.ApplyPresentation(this);
+    }
+
+    private static float ReadHorizontalInput()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return 0f;
+        }
+
+        bool moveLeft = keyboard.aKey.isPressed;
+        bool moveRight = keyboard.dKey.isPressed;
+
+        if (moveLeft == moveRight)
+        {
+            return 0f;
+        }
+
+        return moveLeft ? -1f : 1f;
     }
 }
