@@ -36,6 +36,13 @@ public class UnitController : MonoBehaviour
     [SerializeField] private float powerChargeSpeed = 75f;
     [SerializeField] private WeaponData lockedWeapon;
 
+    [Header("Projectile Foundation")]
+    [SerializeField] private WindManager windManager;
+    [SerializeField] private ProjectileController activeProjectile;
+    [SerializeField] private Vector2 firingOriginOffset = new Vector2(0.55f, 0.25f);
+    [SerializeField] private float powerVelocityMultiplier = 0.12f;
+    [SerializeField] private float projectileSideViewPlaneZ;
+
     [Header("Movement Foundation")]
     [SerializeField] private float movement = 220f;
     [SerializeField] private float maxMovement = 220f;
@@ -61,6 +68,8 @@ public class UnitController : MonoBehaviour
     public bool IsCharging => isCharging;
     public float PowerChargeSpeed => powerChargeSpeed;
     public WeaponData LockedWeapon => lockedWeapon;
+    public ProjectileController ActiveProjectile => activeProjectile;
+    public float PowerVelocityMultiplier => powerVelocityMultiplier;
     public float Movement => movement;
     public float RemainingMovement => movement;
     public float MaxMovement => maxMovement;
@@ -70,6 +79,7 @@ public class UnitController : MonoBehaviour
     private void Awake()
     {
         view = GetComponent<UnitView>();
+        ResolveWindManager();
         ApplyVehicleData();
     }
 
@@ -104,6 +114,7 @@ public class UnitController : MonoBehaviour
         localAngleAdjustSpeed = Mathf.Max(0f, localAngleAdjustSpeed);
         currentPower = Mathf.Clamp(currentPower, 0f, 100f);
         powerChargeSpeed = Mathf.Max(0f, powerChargeSpeed);
+        powerVelocityMultiplier = Mathf.Max(0f, powerVelocityMultiplier);
         hp = Mathf.Max(0, hp);
         shield = Mathf.Max(0, shield);
         maxMovement = Mathf.Max(0f, maxMovement);
@@ -200,6 +211,11 @@ public class UnitController : MonoBehaviour
 
     private void HandlePowerChargeInput(float deltaTime)
     {
+        if (activeProjectile != null)
+        {
+            return;
+        }
+
         bool isSpaceHeld = IsPowerChargeHeld();
         if (isSpaceHeld)
         {
@@ -237,8 +253,9 @@ public class UnitController : MonoBehaviour
 
     private void EndPowerCharge()
     {
-        string weaponName = lockedWeapon == null ? "No Weapon" : lockedWeapon.DisplayName;
-        Debug.Log($"Would fire {weaponName} with power {currentPower:0.#}");
+        WeaponData weaponToFire = lockedWeapon;
+        float finalPower = currentPower;
+        SpawnProjectile(weaponToFire, finalPower);
         CancelPowerCharge();
     }
 
@@ -249,6 +266,47 @@ public class UnitController : MonoBehaviour
         lockedWeapon = null;
     }
 
+    private void SpawnProjectile(WeaponData weaponToFire, float finalPower)
+    {
+        if (weaponToFire == null)
+        {
+            Debug.LogWarning($"{name} cannot fire because no weapon is selected.");
+            return;
+        }
+
+        if (activeProjectile != null)
+        {
+            return;
+        }
+
+        ResolveWindManager();
+
+        GameObject projectileObject = new GameObject($"Projectile - {weaponToFire.DisplayName}");
+        projectileObject.transform.position = GetFiringOrigin();
+
+        SpriteRenderer projectileRenderer = projectileObject.AddComponent<SpriteRenderer>();
+        projectileRenderer.sortingOrder = 30;
+
+        ProjectileController projectile = projectileObject.AddComponent<ProjectileController>();
+        projectile.Configure(weaponToFire, windManager);
+        projectile.SetSideViewPlane(projectileSideViewPlaneZ);
+        projectile.Resolved += HandleProjectileResolved;
+
+        Vector2 launchDirection = GetLocalAimDirection();
+        float launchSpeed = weaponToFire.LaunchSpeed + finalPower * powerVelocityMultiplier;
+        projectile.Launch(launchDirection * launchSpeed);
+
+        activeProjectile = projectile;
+    }
+
+    private void HandleProjectileResolved(ProjectileController projectile)
+    {
+        if (activeProjectile == projectile)
+        {
+            activeProjectile = null;
+        }
+    }
+
     private void RefreshView()
     {
         if (view == null)
@@ -257,6 +315,35 @@ public class UnitController : MonoBehaviour
         }
 
         view?.ApplyPresentation(this);
+    }
+
+    private void ResolveWindManager()
+    {
+        if (windManager == null)
+        {
+            windManager = FindFirstObjectByType<WindManager>();
+        }
+    }
+
+    private Vector3 GetFiringOrigin()
+    {
+        float facingSign = facing == UnitFacing.Right ? 1f : -1f;
+        Vector3 origin = transform.position + new Vector3(
+            Mathf.Abs(firingOriginOffset.x) * facingSign,
+            firingOriginOffset.y,
+            0f);
+        origin.z = projectileSideViewPlaneZ;
+        return origin;
+    }
+
+    private Vector2 GetLocalAimDirection()
+    {
+        float facingSign = facing == UnitFacing.Right ? 1f : -1f;
+        float angleRadians = localAngle * Mathf.Deg2Rad;
+
+        return new Vector2(
+            Mathf.Cos(angleRadians) * facingSign,
+            Mathf.Sin(angleRadians)).normalized;
     }
 
     private static float ReadHorizontalInput()
