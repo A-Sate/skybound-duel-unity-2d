@@ -15,10 +15,11 @@ public class ProjectileController : MonoBehaviour
     [SerializeField] private float elapsedLifetime;
 
     [Header("Projectile Tuning")]
-    [SerializeField] private Vector2 gravity = new Vector2(0f, -9.81f);
+    [SerializeField] private Vector2 gravity = new Vector2(0f, -4.5f);
+    [SerializeField] private float maxProjectileSpeed = 8f;
     [SerializeField] private Vector2 worldBoundsMin = new Vector2(-24f, -8f);
     [SerializeField] private Vector2 worldBoundsMax = new Vector2(24f, 30f);
-    [SerializeField] private float projectileLifetime = 8f;
+    [SerializeField] private float projectileLifetime = 10f;
     [SerializeField] private float groundY = -1.25f;
     [SerializeField] private float sideViewPlaneZ;
 
@@ -26,6 +27,7 @@ public class ProjectileController : MonoBehaviour
     public Vector2 Velocity => velocity;
     public bool Launched => launched;
     public Vector2 Gravity => gravity;
+    public float MaxProjectileSpeed => maxProjectileSpeed;
     public Vector2 WorldBoundsMin => worldBoundsMin;
     public Vector2 WorldBoundsMax => worldBoundsMax;
     public float ProjectileLifetime => projectileLifetime;
@@ -43,14 +45,15 @@ public class ProjectileController : MonoBehaviour
         ApplyWeaponPresentation();
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
         if (!launched)
         {
             return;
         }
 
-        elapsedLifetime += Time.fixedDeltaTime;
+        float deltaTime = Time.deltaTime;
+        elapsedLifetime += deltaTime;
 
         Vector2 acceleration = gravity;
         if (windManager != null)
@@ -58,9 +61,10 @@ public class ProjectileController : MonoBehaviour
             acceleration += windManager.GetWindAcceleration();
         }
 
-        velocity += acceleration * Time.fixedDeltaTime;
+        velocity += acceleration * deltaTime;
+        velocity = ClampSpeed(velocity);
 
-        Vector3 nextPosition = transform.position + (Vector3)(velocity * Time.fixedDeltaTime);
+        Vector3 nextPosition = transform.position + (Vector3)(velocity * deltaTime);
         nextPosition.z = sideViewPlaneZ;
         transform.position = nextPosition;
 
@@ -76,7 +80,7 @@ public class ProjectileController : MonoBehaviour
 
     public void Launch(Vector2 initialVelocity)
     {
-        velocity = initialVelocity;
+        velocity = ClampSpeed(initialVelocity);
         elapsedLifetime = 0f;
         launched = true;
     }
@@ -88,6 +92,12 @@ public class ProjectileController : MonoBehaviour
         Vector3 position = transform.position;
         position.z = sideViewPlaneZ;
         transform.position = position;
+    }
+
+    private void OnValidate()
+    {
+        maxProjectileSpeed = Mathf.Max(0f, maxProjectileSpeed);
+        projectileLifetime = Mathf.Max(0.1f, projectileLifetime);
     }
 
     private void ApplyWeaponPresentation()
@@ -133,6 +143,22 @@ public class ProjectileController : MonoBehaviour
         {
             Resolve();
         }
+    }
+
+    private Vector2 ClampSpeed(Vector2 candidateVelocity)
+    {
+        if (maxProjectileSpeed <= 0f)
+        {
+            return candidateVelocity;
+        }
+
+        float maxSpeedSqr = maxProjectileSpeed * maxProjectileSpeed;
+        if (candidateVelocity.sqrMagnitude <= maxSpeedSqr)
+        {
+            return candidateVelocity;
+        }
+
+        return candidateVelocity.normalized * maxProjectileSpeed;
     }
 
     private void Resolve()

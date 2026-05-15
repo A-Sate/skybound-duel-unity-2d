@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "WeaponData", menuName = "Skybound Duel/Weapon Data")]
 public class WeaponData : ScriptableObject
@@ -12,7 +13,8 @@ public class WeaponData : ScriptableObject
     [SerializeField] private float blastRadius = 1.5f;
     [SerializeField] private float terrainPitPower = 1f;
     [SerializeField] private float projectileSize = 0.3f;
-    [SerializeField] private float launchSpeed = 10f;
+    [FormerlySerializedAs("launchSpeed")]
+    [SerializeField] private float baseLaunchSpeed = 2.4f;
     [SerializeField] private Vector2 allowedLocalAngleRange = new Vector2(-15f, 80f);
 
     [Header("Presentation")]
@@ -25,7 +27,8 @@ public class WeaponData : ScriptableObject
     public float BlastRadius => blastRadius;
     public float TerrainPitPower => terrainPitPower;
     public float ProjectileSize => projectileSize;
-    public float LaunchSpeed => launchSpeed;
+    public float BaseLaunchSpeed => baseLaunchSpeed;
+    public float LaunchSpeed => baseLaunchSpeed;
     public Vector2 AllowedLocalAngleRange => allowedLocalAngleRange;
     public Sprite ProjectileSprite => projectileSprite;
     public Color ProjectileColor => projectileColor;

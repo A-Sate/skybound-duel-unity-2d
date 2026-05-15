@@ -40,7 +40,7 @@ public class UnitController : MonoBehaviour
     [SerializeField] private WindManager windManager;
     [SerializeField] private ProjectileController activeProjectile;
     [SerializeField] private Vector2 firingOriginOffset = new Vector2(0.55f, 0.25f);
-    [SerializeField] private float powerVelocityMultiplier = 0.12f;
+    [SerializeField] private float powerVelocityMultiplier = 0.035f;
     [SerializeField] private float projectileSideViewPlaneZ;
 
     [Header("Movement Foundation")]
@@ -69,6 +69,7 @@ public class UnitController : MonoBehaviour
     public float PowerChargeSpeed => powerChargeSpeed;
     public WeaponData LockedWeapon => lockedWeapon;
     public ProjectileController ActiveProjectile => activeProjectile;
+    public float BaseLaunchSpeed => weaponData != null ? weaponData.BaseLaunchSpeed : 0f;
     public float PowerVelocityMultiplier => powerVelocityMultiplier;
     public float Movement => movement;
     public float RemainingMovement => movement;
@@ -293,7 +294,7 @@ public class UnitController : MonoBehaviour
         projectile.Resolved += HandleProjectileResolved;
 
         Vector2 launchDirection = GetLocalAimDirection();
-        float launchSpeed = weaponToFire.LaunchSpeed + finalPower * powerVelocityMultiplier;
+        float launchSpeed = Mathf.Max(0f, weaponToFire.BaseLaunchSpeed + finalPower * powerVelocityMultiplier);
         projectile.Launch(launchDirection * launchSpeed);
 
         activeProjectile = projectile;

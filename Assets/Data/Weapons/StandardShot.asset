@@ -18,7 +18,7 @@ MonoBehaviour:
   blastRadius: 1.5
   terrainPitPower: 1
   projectileSize: 0.3
-  launchSpeed: 10
+  baseLaunchSpeed: 2.4
   allowedLocalAngleRange: {x: -15, y: 80}
   projectileSprite: {fileID: 21300000, guid: 63d42bb85e559e94d8634fb0fd163180, type: 3}
   projectileColor: {r: 1, g: 0.85, b: 0.2, a: 1}
