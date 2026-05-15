@@ -664,8 +664,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 88122e31087306c418d4f48484f654a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WindManager
-  currentWind: {x: 0.25, y: 0}
-  windAccelerationScale: 1
+  windStrength: 10
+  windDirectionDegrees: 0
+  windAccelerationScale: 0.025
+  currentWindVector: {x: 10, y: 0}
 --- !u!114 &1104935004
 MonoBehaviour:
   m_ObjectHideFlags: 0

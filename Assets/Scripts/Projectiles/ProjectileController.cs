@@ -17,6 +17,7 @@ public class ProjectileController : MonoBehaviour
     [Header("Projectile Tuning")]
     [SerializeField] private Vector2 gravity = new Vector2(0f, -4.5f);
     [SerializeField] private float maxProjectileSpeed = 8f;
+    [SerializeField] private float projectileWindAccelerationScale = 1f;
     [SerializeField] private Vector2 worldBoundsMin = new Vector2(-24f, -8f);
     [SerializeField] private Vector2 worldBoundsMax = new Vector2(24f, 30f);
     [SerializeField] private float projectileLifetime = 10f;
@@ -28,6 +29,7 @@ public class ProjectileController : MonoBehaviour
     public bool Launched => launched;
     public Vector2 Gravity => gravity;
     public float MaxProjectileSpeed => maxProjectileSpeed;
+    public float ProjectileWindAccelerationScale => projectileWindAccelerationScale;
     public Vector2 WorldBoundsMin => worldBoundsMin;
     public Vector2 WorldBoundsMax => worldBoundsMax;
     public float ProjectileLifetime => projectileLifetime;
@@ -58,7 +60,7 @@ public class ProjectileController : MonoBehaviour
         Vector2 acceleration = gravity;
         if (windManager != null)
         {
-            acceleration += windManager.GetWindAcceleration();
+            acceleration += windManager.GetWindAcceleration(projectileWindAccelerationScale);
         }
 
         velocity += acceleration * deltaTime;
@@ -97,6 +99,7 @@ public class ProjectileController : MonoBehaviour
     private void OnValidate()
     {
         maxProjectileSpeed = Mathf.Max(0f, maxProjectileSpeed);
+        projectileWindAccelerationScale = Mathf.Max(0f, projectileWindAccelerationScale);
         projectileLifetime = Mathf.Max(0.1f, projectileLifetime);
     }
 
