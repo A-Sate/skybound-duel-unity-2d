@@ -322,7 +322,7 @@ public class UnitController : MonoBehaviour
     {
         if (windManager == null)
         {
-            windManager = FindFirstObjectByType<WindManager>();
+            windManager = FindAnyObjectByType<WindManager>();
         }
     }
 

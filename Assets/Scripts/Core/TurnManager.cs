@@ -15,7 +15,7 @@ public class TurnManager : MonoBehaviour
     {
         if (units.Count == 0)
         {
-            UnitController[] sceneUnits = FindObjectsByType<UnitController>(FindObjectsSortMode.None);
+            UnitController[] sceneUnits = FindObjectsByType<UnitController>(FindObjectsInactive.Exclude);
             units.AddRange(sceneUnits);
             units.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
         }
