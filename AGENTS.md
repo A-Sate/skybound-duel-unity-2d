@@ -12,7 +12,10 @@ Build this project as a Unity 2D Core, sprite-based side-view turn-based artille
 
 ## Technical Direction
 
-- Use Unity 6000.3.15f1 for verification.
+- Use Unity 6000.4.6f1 for verification.
+- Use Unity 6000.4.6f1 for batchmode verification.
+- Do not use Unity 6000.3.15f1 for this project anymore.
+- If Unity 6000.4.6f1 is unavailable, ask before running Unity batchmode.
 - Keep the camera orthographic.
 - Use 2D side-view gameplay.
 - Use sprite-based presentation for vehicles, projectiles, effects, and in-world visuals.
@@ -94,7 +97,7 @@ Every implemented feature should include a short Unity test note in the response
 - Whether to enter Play Mode.
 - What visible result or Console output confirms success.
 
-When possible, verify by opening the project in Unity 6000.3.15f1 in batch mode or through the editor. If Unity verification cannot be run, clearly say so and explain what was checked instead.
+When possible, verify by opening the project in Unity 6000.4.6f1 in batch mode or through the editor. Do not use Unity 6000.3.15f1 for this project anymore. If Unity 6000.4.6f1 is unavailable, ask before running Unity batchmode. If Unity verification cannot be run, clearly say so and explain what was checked instead.
 
 ## Repository Hygiene
 
