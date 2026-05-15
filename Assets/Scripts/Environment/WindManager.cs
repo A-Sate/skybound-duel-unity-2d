@@ -7,7 +7,7 @@ public class WindManager : MonoBehaviour
     [Range(0f, 20f)]
     [SerializeField] private float windStrength = 10f;
     [SerializeField] private float windDirectionDegrees;
-    [SerializeField] private float windAccelerationScale = 0.025f;
+    [SerializeField] private float windAccelerationScale = 0.03f;
 
     [Header("Wind Debug")]
     [FormerlySerializedAs("currentWind")]
