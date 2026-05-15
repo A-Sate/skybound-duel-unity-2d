@@ -28,6 +28,7 @@ public class UnitController : MonoBehaviour
     [SerializeField] private int hp = 750;
     [SerializeField] private int shield = 250;
     [SerializeField] private float localAngle = 45f;
+    [SerializeField] private float localAngleAdjustSpeed = 60f;
 
     [Header("Movement Foundation")]
     [SerializeField] private float movement = 220f;
@@ -41,12 +42,15 @@ public class UnitController : MonoBehaviour
 
     public VehicleData VehicleData => vehicleData;
     public WeaponData WeaponData => weaponData;
+    public WeaponData SelectedWeapon => weaponData;
     public UnitTeam Team => team;
     public UnitFacing Facing => facing;
     public bool IsActiveTurn => isActiveTurn;
     public int Hp => hp;
     public int Shield => shield;
     public float LocalAngle => localAngle;
+    public float MinLocalAngle => GetAllowedLocalAngleRange().x;
+    public float MaxLocalAngle => GetAllowedLocalAngleRange().y;
     public float Movement => movement;
     public float RemainingMovement => movement;
     public float MaxMovement => maxMovement;
@@ -73,11 +77,15 @@ public class UnitController : MonoBehaviour
 
         float horizontalInput = ReadHorizontalInput();
         TryMoveHorizontal(horizontalInput, Time.deltaTime);
+
+        float angleInput = ReadLocalAngleInput();
+        TryAdjustLocalAngle(angleInput, Time.deltaTime);
     }
 
     private void OnValidate()
     {
-        localAngle = Mathf.Clamp(localAngle, -90f, 90f);
+        localAngle = ClampLocalAngle(localAngle);
+        localAngleAdjustSpeed = Mathf.Max(0f, localAngleAdjustSpeed);
         hp = Mathf.Max(0, hp);
         shield = Mathf.Max(0, shield);
         maxMovement = Mathf.Max(0f, maxMovement);
@@ -107,7 +115,19 @@ public class UnitController : MonoBehaviour
 
     public void SetLocalAngle(float newLocalAngle)
     {
-        localAngle = Mathf.Clamp(newLocalAngle, -90f, 90f);
+        localAngle = ClampLocalAngle(newLocalAngle);
+    }
+
+    public bool TryAdjustLocalAngle(float direction, float deltaTime)
+    {
+        if (!isActiveTurn || Mathf.Approximately(direction, 0f) || localAngleAdjustSpeed <= 0f || deltaTime <= 0f)
+        {
+            return false;
+        }
+
+        float previousAngle = localAngle;
+        SetLocalAngle(localAngle + Mathf.Sign(direction) * localAngleAdjustSpeed * deltaTime);
+        return !Mathf.Approximately(previousAngle, localAngle);
     }
 
     public bool TryMoveHorizontal(float direction, float deltaTime)
@@ -182,5 +202,46 @@ public class UnitController : MonoBehaviour
         }
 
         return moveLeft ? -1f : 1f;
+    }
+
+    private static float ReadLocalAngleInput()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return 0f;
+        }
+
+        bool increaseAngle = keyboard.wKey.isPressed;
+        bool decreaseAngle = keyboard.sKey.isPressed;
+
+        if (increaseAngle == decreaseAngle)
+        {
+            return 0f;
+        }
+
+        return increaseAngle ? 1f : -1f;
+    }
+
+    private float ClampLocalAngle(float angle)
+    {
+        Vector2 allowedRange = GetAllowedLocalAngleRange();
+        return Mathf.Clamp(angle, allowedRange.x, allowedRange.y);
+    }
+
+    private Vector2 GetAllowedLocalAngleRange()
+    {
+        if (weaponData == null)
+        {
+            return new Vector2(-90f, 90f);
+        }
+
+        Vector2 allowedRange = weaponData.AllowedLocalAngleRange;
+        if (allowedRange.x > allowedRange.y)
+        {
+            return new Vector2(allowedRange.y, allowedRange.x);
+        }
+
+        return allowedRange;
     }
 }
