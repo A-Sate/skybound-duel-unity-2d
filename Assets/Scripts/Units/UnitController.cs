@@ -30,6 +30,12 @@ public class UnitController : MonoBehaviour
     [SerializeField] private float localAngle = 45f;
     [SerializeField] private float localAngleAdjustSpeed = 60f;
 
+    [Header("Power Foundation")]
+    [SerializeField] private float currentPower;
+    [SerializeField] private bool isCharging;
+    [SerializeField] private float powerChargeSpeed = 75f;
+    [SerializeField] private WeaponData lockedWeapon;
+
     [Header("Movement Foundation")]
     [SerializeField] private float movement = 220f;
     [SerializeField] private float maxMovement = 220f;
@@ -51,6 +57,10 @@ public class UnitController : MonoBehaviour
     public float LocalAngle => localAngle;
     public float MinLocalAngle => GetAllowedLocalAngleRange().x;
     public float MaxLocalAngle => GetAllowedLocalAngleRange().y;
+    public float CurrentPower => currentPower;
+    public bool IsCharging => isCharging;
+    public float PowerChargeSpeed => powerChargeSpeed;
+    public WeaponData LockedWeapon => lockedWeapon;
     public float Movement => movement;
     public float RemainingMovement => movement;
     public float MaxMovement => maxMovement;
@@ -75,6 +85,12 @@ public class UnitController : MonoBehaviour
             return;
         }
 
+        HandlePowerChargeInput(Time.deltaTime);
+        if (isCharging)
+        {
+            return;
+        }
+
         float horizontalInput = ReadHorizontalInput();
         TryMoveHorizontal(horizontalInput, Time.deltaTime);
 
@@ -86,6 +102,8 @@ public class UnitController : MonoBehaviour
     {
         localAngle = ClampLocalAngle(localAngle);
         localAngleAdjustSpeed = Mathf.Max(0f, localAngleAdjustSpeed);
+        currentPower = Mathf.Clamp(currentPower, 0f, 100f);
+        powerChargeSpeed = Mathf.Max(0f, powerChargeSpeed);
         hp = Mathf.Max(0, hp);
         shield = Mathf.Max(0, shield);
         maxMovement = Mathf.Max(0f, maxMovement);
@@ -99,6 +117,11 @@ public class UnitController : MonoBehaviour
     {
         bool becameActive = active && !isActiveTurn;
         isActiveTurn = active;
+        if (!active && isCharging)
+        {
+            CancelPowerCharge();
+        }
+
         if (becameActive)
         {
             ResetMovement();
@@ -120,7 +143,7 @@ public class UnitController : MonoBehaviour
 
     public bool TryAdjustLocalAngle(float direction, float deltaTime)
     {
-        if (!isActiveTurn || Mathf.Approximately(direction, 0f) || localAngleAdjustSpeed <= 0f || deltaTime <= 0f)
+        if (!isActiveTurn || isCharging || Mathf.Approximately(direction, 0f) || localAngleAdjustSpeed <= 0f || deltaTime <= 0f)
         {
             return false;
         }
@@ -132,7 +155,7 @@ public class UnitController : MonoBehaviour
 
     public bool TryMoveHorizontal(float direction, float deltaTime)
     {
-        if (!isActiveTurn || Mathf.Approximately(direction, 0f))
+        if (!isActiveTurn || isCharging || Mathf.Approximately(direction, 0f))
         {
             return false;
         }
@@ -173,6 +196,57 @@ public class UnitController : MonoBehaviour
     public void ResetMovement()
     {
         movement = maxMovement;
+    }
+
+    private void HandlePowerChargeInput(float deltaTime)
+    {
+        bool isSpaceHeld = IsPowerChargeHeld();
+        if (isSpaceHeld)
+        {
+            if (!isCharging)
+            {
+                BeginPowerCharge();
+            }
+
+            ChargePower(deltaTime);
+            return;
+        }
+
+        if (isCharging)
+        {
+            EndPowerCharge();
+        }
+    }
+
+    private void BeginPowerCharge()
+    {
+        lockedWeapon = weaponData;
+        currentPower = 0f;
+        isCharging = true;
+    }
+
+    private void ChargePower(float deltaTime)
+    {
+        if (!isCharging || deltaTime <= 0f || powerChargeSpeed <= 0f)
+        {
+            return;
+        }
+
+        currentPower = Mathf.Clamp(currentPower + powerChargeSpeed * deltaTime, 0f, 100f);
+    }
+
+    private void EndPowerCharge()
+    {
+        string weaponName = lockedWeapon == null ? "No Weapon" : lockedWeapon.DisplayName;
+        Debug.Log($"Would fire {weaponName} with power {currentPower:0.#}");
+        CancelPowerCharge();
+    }
+
+    private void CancelPowerCharge()
+    {
+        isCharging = false;
+        currentPower = 0f;
+        lockedWeapon = null;
     }
 
     private void RefreshView()
@@ -221,6 +295,12 @@ public class UnitController : MonoBehaviour
         }
 
         return increaseAngle ? 1f : -1f;
+    }
+
+    private static bool IsPowerChargeHeld()
+    {
+        Keyboard keyboard = Keyboard.current;
+        return keyboard != null && keyboard.spaceKey.isPressed;
     }
 
     private float ClampLocalAngle(float angle)
