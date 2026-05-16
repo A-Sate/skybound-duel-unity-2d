@@ -25,6 +25,9 @@ public class ProjectileController : MonoBehaviour
     [SerializeField] private float groundY = -1.25f;
     [SerializeField] private float sideViewPlaneZ;
 
+    [Header("Projectile Visual")]
+    [SerializeField] private float projectileSizeToWorldScale = 0.0375f;
+
     [Header("Unit Hit Detection")]
     [SerializeField] private bool detectUnitHitboxes = true;
     [SerializeField] private float unitHitboxSampleDistance = 0.05f;
@@ -48,6 +51,7 @@ public class ProjectileController : MonoBehaviour
     public Vector2 WorldBoundsMax => worldBoundsMax;
     public float ProjectileLifetime => projectileLifetime;
     public float GroundY => groundY;
+    public float ProjectileSizeToWorldScale => projectileSizeToWorldScale;
     public UnitController OwnerUnit => ownerUnit;
 
     public event Action<ProjectileController> Resolved;
@@ -123,6 +127,7 @@ public class ProjectileController : MonoBehaviour
         maxProjectileSpeed = Mathf.Max(0f, maxProjectileSpeed);
         projectileWindAccelerationScale = Mathf.Max(0f, projectileWindAccelerationScale);
         projectileLifetime = Mathf.Max(0.1f, projectileLifetime);
+        projectileSizeToWorldScale = Mathf.Max(0.001f, projectileSizeToWorldScale);
         unitHitboxSampleDistance = Mathf.Max(0.01f, unitHitboxSampleDistance);
         impactVisualDuration = Mathf.Max(0.01f, impactVisualDuration);
         impactVisualStartSize = Mathf.Max(0.01f, impactVisualStartSize);
@@ -149,7 +154,8 @@ public class ProjectileController : MonoBehaviour
         }
 
         spriteRenderer.color = weaponData.ProjectileColor;
-        transform.localScale = Vector3.one * weaponData.ProjectileSize;
+        float visualScale = Mathf.Max(0.001f, weaponData.ProjectileSize * projectileSizeToWorldScale);
+        transform.localScale = Vector3.one * visualScale;
     }
 
     private void CheckResolution(Vector3 previousPosition, Vector3 currentPosition)
