@@ -81,7 +81,7 @@ public class UnitAimDebugView : MonoBehaviour
             return;
         }
 
-        bool shouldShow = showAimLine && (unit.IsActiveTurn || showInactiveAimLine);
+        bool shouldShow = showAimLine && !unit.IsKnockedOut && (unit.IsActiveTurn || showInactiveAimLine);
         aimLine.enabled = shouldShow;
         if (!shouldShow)
         {

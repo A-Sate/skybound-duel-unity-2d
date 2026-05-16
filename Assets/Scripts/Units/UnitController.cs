@@ -33,6 +33,7 @@ public class UnitController : MonoBehaviour
     [FormerlySerializedAs("shield")]
     [SerializeField] private int currentShield = 250;
     [SerializeField] private int maxShield = 250;
+    [SerializeField] private bool isKnockedOut;
     [SerializeField] private float localAngle = 45f;
     [SerializeField] private float localAngleAdjustSpeed = 60f;
 
@@ -71,6 +72,8 @@ public class UnitController : MonoBehaviour
     public int Shield => currentShield;
     public int CurrentShield => currentShield;
     public int MaxShield => maxShield;
+    public bool IsKnockedOut => isKnockedOut;
+    public bool IsDead => isKnockedOut;
     public float LocalAngle => localAngle;
     public float MinLocalAngle => GetAllowedLocalAngleRange().x;
     public float MaxLocalAngle => GetAllowedLocalAngleRange().y;
@@ -104,7 +107,7 @@ public class UnitController : MonoBehaviour
 
     private void Update()
     {
-        if (!isActiveTurn)
+        if (isKnockedOut || !isActiveTurn)
         {
             return;
         }
@@ -147,6 +150,7 @@ public class UnitController : MonoBehaviour
 
     public void SetActiveTurn(bool active)
     {
+        active = active && !isKnockedOut;
         bool becameActive = active && !isActiveTurn;
         isActiveTurn = active;
         if (!active && isCharging)
@@ -175,7 +179,7 @@ public class UnitController : MonoBehaviour
 
     public bool TryAdjustLocalAngle(float direction, float deltaTime)
     {
-        if (!isActiveTurn || isCharging || Mathf.Approximately(direction, 0f) || localAngleAdjustSpeed <= 0f || deltaTime <= 0f)
+        if (isKnockedOut || !isActiveTurn || isCharging || Mathf.Approximately(direction, 0f) || localAngleAdjustSpeed <= 0f || deltaTime <= 0f)
         {
             return false;
         }
@@ -187,7 +191,7 @@ public class UnitController : MonoBehaviour
 
     public bool TryMoveHorizontal(float direction, float deltaTime)
     {
-        if (!isActiveTurn || isCharging || Mathf.Approximately(direction, 0f))
+        if (isKnockedOut || !isActiveTurn || isCharging || Mathf.Approximately(direction, 0f))
         {
             return false;
         }
@@ -235,10 +239,16 @@ public class UnitController : MonoBehaviour
         maxShield = Mathf.Max(0, vehicleData.MaxShield);
         currentHp = maxHp;
         currentShield = maxShield;
+        isKnockedOut = false;
     }
 
     public void ApplyDamage(float amount)
     {
+        if (isKnockedOut)
+        {
+            return;
+        }
+
         int finalDamage = Mathf.Max(0, Mathf.RoundToInt(amount));
         if (finalDamage <= 0)
         {
@@ -253,6 +263,35 @@ public class UnitController : MonoBehaviour
         currentHp = Mathf.Max(0, currentHp - remainingDamage);
 
         Debug.Log($"{name} took {finalDamage} damage. Shield: {currentShield}/{maxShield}, HP: {currentHp}/{maxHp}");
+        if (currentHp <= 0)
+        {
+            KnockOut();
+        }
+    }
+
+    public void KnockOut()
+    {
+        SetKnockedOut(true);
+    }
+
+    public void SetKnockedOut(bool knockedOut)
+    {
+        if (isKnockedOut == knockedOut)
+        {
+            return;
+        }
+
+        isKnockedOut = knockedOut;
+        if (isKnockedOut)
+        {
+            currentHp = 0;
+            currentShield = 0;
+            isActiveTurn = false;
+            CancelPowerCharge();
+            Debug.Log($"{name} knocked out");
+        }
+
+        RefreshView();
     }
 
     public void ResetMovement()
@@ -262,7 +301,7 @@ public class UnitController : MonoBehaviour
 
     private void HandlePowerChargeInput(float deltaTime)
     {
-        if (activeProjectile != null)
+        if (isKnockedOut || activeProjectile != null)
         {
             return;
         }
@@ -287,7 +326,7 @@ public class UnitController : MonoBehaviour
 
     private bool TryRequestPass()
     {
-        if (!isActiveTurn || isCharging || activeProjectile != null || !WasPassPressedThisFrame())
+        if (isKnockedOut || !isActiveTurn || isCharging || activeProjectile != null || !WasPassPressedThisFrame())
         {
             return false;
         }
@@ -330,6 +369,11 @@ public class UnitController : MonoBehaviour
 
     private void SpawnProjectile(WeaponData weaponToFire, float finalPower)
     {
+        if (isKnockedOut)
+        {
+            return;
+        }
+
         if (weaponToFire == null)
         {
             Debug.LogWarning($"{name} cannot fire because no weapon is selected.");
