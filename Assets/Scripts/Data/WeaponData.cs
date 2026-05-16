@@ -16,6 +16,7 @@ public class WeaponData : ScriptableObject
     [FormerlySerializedAs("launchSpeed")]
     [SerializeField] private float baseLaunchSpeed = 2.4f;
     [SerializeField] private Vector2 allowedLocalAngleRange = new Vector2(-15f, 80f);
+    [SerializeField] private bool isUltimate;
 
     [Header("Presentation")]
     [SerializeField] private Sprite projectileSprite;
@@ -30,6 +31,7 @@ public class WeaponData : ScriptableObject
     public float BaseLaunchSpeed => baseLaunchSpeed;
     public float LaunchSpeed => baseLaunchSpeed;
     public Vector2 AllowedLocalAngleRange => allowedLocalAngleRange;
+    public bool IsUltimate => isUltimate;
     public Sprite ProjectileSprite => projectileSprite;
     public Color ProjectileColor => projectileColor;
 }

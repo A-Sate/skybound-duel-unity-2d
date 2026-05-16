@@ -400,7 +400,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UnitController
   vehicleData: {fileID: 11400000, guid: 8f7b536cffb242147875827f48317895, type: 2}
-  weaponData: {fileID: 11400000, guid: 9b2608d4585523942894d62f3af182ad, type: 2}
+  weaponData: {fileID: 11400000, guid: 3169da1550a5473ca61bc3060dbfcfa4, type: 2}
+  availableWeapons:
+  - {fileID: 11400000, guid: 3169da1550a5473ca61bc3060dbfcfa4, type: 2}
+  - {fileID: 11400000, guid: 8b526aaf294448dbbab6bfd6179f8f16, type: 2}
+  - {fileID: 11400000, guid: 432e3b5ca87a4fc1a8db8dcc4d008446, type: 2}
+  - {fileID: 11400000, guid: 495c86734ca04a469b42d65b5f32c0f8, type: 2}
+  selectedWeaponIndex: 0
   playerName: Player 1
   team: 0
   facing: 1
@@ -817,7 +823,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UnitController
   vehicleData: {fileID: 11400000, guid: 8f7b536cffb242147875827f48317895, type: 2}
-  weaponData: {fileID: 11400000, guid: 9b2608d4585523942894d62f3af182ad, type: 2}
+  weaponData: {fileID: 11400000, guid: 3169da1550a5473ca61bc3060dbfcfa4, type: 2}
+  availableWeapons:
+  - {fileID: 11400000, guid: 3169da1550a5473ca61bc3060dbfcfa4, type: 2}
+  - {fileID: 11400000, guid: 8b526aaf294448dbbab6bfd6179f8f16, type: 2}
+  - {fileID: 11400000, guid: 432e3b5ca87a4fc1a8db8dcc4d008446, type: 2}
+  - {fileID: 11400000, guid: 495c86734ca04a469b42d65b5f32c0f8, type: 2}
+  selectedWeaponIndex: 0
   playerName: Player 2
   team: 1
   facing: -1

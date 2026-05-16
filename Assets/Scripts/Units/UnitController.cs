@@ -19,7 +19,11 @@ public class UnitController : MonoBehaviour
 {
     [Header("Data")]
     [SerializeField] private VehicleData vehicleData;
+    [InspectorName("Selected Weapon")]
     [SerializeField] private WeaponData weaponData;
+    [SerializeField] private WeaponData[] availableWeapons = new WeaponData[0];
+    [InspectorName("Selected Weapon Index")]
+    [SerializeField] private int selectedWeaponIndex;
     [SerializeField] private string playerName;
 
     [Header("Turn And Team")]
@@ -64,6 +68,8 @@ public class UnitController : MonoBehaviour
     public VehicleData VehicleData => vehicleData;
     public WeaponData WeaponData => weaponData;
     public WeaponData SelectedWeapon => weaponData;
+    public WeaponData[] AvailableWeapons => availableWeapons;
+    public int SelectedWeaponIndex => selectedWeaponIndex;
     public string PlayerName => string.IsNullOrWhiteSpace(playerName) ? GetDefaultPlayerName() : playerName;
     public string DisplayName => PlayerName;
     public UnitTeam Team => team;
@@ -85,7 +91,7 @@ public class UnitController : MonoBehaviour
     public float PowerChargeSpeed => powerChargeSpeed;
     public WeaponData LockedWeapon => lockedWeapon;
     public ProjectileController ActiveProjectile => activeProjectile;
-    public float BaseLaunchSpeed => weaponData != null ? weaponData.BaseLaunchSpeed : 0f;
+    public float BaseLaunchSpeed => SelectedWeapon != null ? SelectedWeapon.BaseLaunchSpeed : 0f;
     public float PowerVelocityMultiplier => powerVelocityMultiplier;
     public float Movement => movement;
     public float RemainingMovement => movement;
@@ -100,6 +106,7 @@ public class UnitController : MonoBehaviour
     private void Awake()
     {
         EnsureDefaultPlayerName();
+        ValidateWeaponSelection();
         view = GetComponent<UnitView>();
         ResolveWindManager();
         ApplyVehicleData();
@@ -123,6 +130,8 @@ public class UnitController : MonoBehaviour
             return;
         }
 
+        TrySelectWeaponFromInput();
+
         if (isCharging)
         {
             return;
@@ -138,6 +147,7 @@ public class UnitController : MonoBehaviour
     private void OnValidate()
     {
         EnsureDefaultPlayerName();
+        ValidateWeaponSelection();
         localAngle = ClampLocalAngle(localAngle);
         localAngleAdjustSpeed = Mathf.Max(0f, localAngleAdjustSpeed);
         currentPower = Mathf.Clamp(currentPower, 0f, 100f);
@@ -361,6 +371,111 @@ public class UnitController : MonoBehaviour
         return true;
     }
 
+    private bool TrySelectWeaponFromInput()
+    {
+        if (!CanSelectWeapon())
+        {
+            return false;
+        }
+
+        int requestedWeaponIndex = ReadWeaponSlotPressedThisFrame();
+        if (requestedWeaponIndex < 0)
+        {
+            return false;
+        }
+
+        return TrySelectWeaponSlot(requestedWeaponIndex);
+    }
+
+    public bool TrySelectWeaponSlot(int weaponIndex)
+    {
+        if (!CanSelectWeapon())
+        {
+            return false;
+        }
+
+        return SetSelectedWeaponIndex(weaponIndex, true);
+    }
+
+    private bool CanSelectWeapon()
+    {
+        return !isKnockedOut && isActiveTurn && !isCharging && activeProjectile == null;
+    }
+
+    private bool SetSelectedWeaponIndex(int weaponIndex, bool logSelection)
+    {
+        if (availableWeapons == null || availableWeapons.Length == 0 || weaponIndex < 0 || weaponIndex >= availableWeapons.Length)
+        {
+            return false;
+        }
+
+        WeaponData selectedWeapon = availableWeapons[weaponIndex];
+        if (selectedWeapon == null)
+        {
+            return false;
+        }
+
+        bool changed = selectedWeaponIndex != weaponIndex || weaponData != selectedWeapon;
+        selectedWeaponIndex = weaponIndex;
+        weaponData = selectedWeapon;
+        SetLocalAngle(localAngle);
+
+        if (changed && logSelection)
+        {
+            Debug.Log($"{PlayerName} selected {weaponData.DisplayName}");
+        }
+
+        return changed;
+    }
+
+    private void ValidateWeaponSelection()
+    {
+        if (availableWeapons == null)
+        {
+            availableWeapons = new WeaponData[0];
+        }
+
+        if (availableWeapons.Length == 0)
+        {
+            selectedWeaponIndex = 0;
+            return;
+        }
+
+        selectedWeaponIndex = Mathf.Clamp(selectedWeaponIndex, 0, availableWeapons.Length - 1);
+        WeaponData selectedWeapon = availableWeapons[selectedWeaponIndex];
+        if (selectedWeapon == null)
+        {
+            int firstAvailableWeaponIndex = FindFirstAvailableWeaponIndex();
+            if (firstAvailableWeaponIndex < 0)
+            {
+                return;
+            }
+
+            selectedWeaponIndex = firstAvailableWeaponIndex;
+            selectedWeapon = availableWeapons[selectedWeaponIndex];
+        }
+
+        weaponData = selectedWeapon;
+    }
+
+    private int FindFirstAvailableWeaponIndex()
+    {
+        if (availableWeapons == null)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < availableWeapons.Length; i++)
+        {
+            if (availableWeapons[i] != null)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     private void BeginPowerCharge()
     {
         lockedWeapon = weaponData;
@@ -522,6 +637,37 @@ public class UnitController : MonoBehaviour
     {
         Keyboard keyboard = Keyboard.current;
         return keyboard != null && keyboard.spaceKey.isPressed;
+    }
+
+    private static int ReadWeaponSlotPressedThisFrame()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return -1;
+        }
+
+        if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
+        {
+            return 0;
+        }
+
+        if (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame)
+        {
+            return 1;
+        }
+
+        if (keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame)
+        {
+            return 2;
+        }
+
+        if (keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame)
+        {
+            return 3;
+        }
+
+        return -1;
     }
 
     private static bool WasPassPressedThisFrame()
