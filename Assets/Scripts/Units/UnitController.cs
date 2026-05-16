@@ -309,7 +309,7 @@ public class UnitController : MonoBehaviour
         projectileRenderer.sortingOrder = 30;
 
         ProjectileController projectile = projectileObject.AddComponent<ProjectileController>();
-        projectile.Configure(weaponToFire, windManager);
+        projectile.Configure(weaponToFire, windManager, this);
         projectile.SetSideViewPlane(projectileSideViewPlaneZ);
         projectile.Resolved += HandleProjectileResolved;
 

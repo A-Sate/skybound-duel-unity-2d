@@ -8,6 +8,7 @@ public class ProjectileController : MonoBehaviour
     [SerializeField] private WeaponData weaponData;
     [SerializeField] private WindManager windManager;
     [SerializeField] private SpriteRenderer spriteRenderer;
+    [SerializeField] private UnitController ownerUnit;
 
     [Header("Projectile State")]
     [SerializeField] private Vector2 velocity;
@@ -23,6 +24,10 @@ public class ProjectileController : MonoBehaviour
     [SerializeField] private float projectileLifetime = 10f;
     [SerializeField] private float groundY = -1.25f;
     [SerializeField] private float sideViewPlaneZ;
+
+    [Header("Unit Hit Detection")]
+    [SerializeField] private bool detectUnitHitboxes = true;
+    [SerializeField] private float unitHitboxSampleDistance = 0.05f;
 
     [Header("Impact Visual")]
     [SerializeField] private bool spawnImpactVisual = true;
@@ -43,6 +48,7 @@ public class ProjectileController : MonoBehaviour
     public Vector2 WorldBoundsMax => worldBoundsMax;
     public float ProjectileLifetime => projectileLifetime;
     public float GroundY => groundY;
+    public UnitController OwnerUnit => ownerUnit;
 
     public event Action<ProjectileController> Resolved;
 
@@ -75,11 +81,12 @@ public class ProjectileController : MonoBehaviour
         velocity += acceleration * deltaTime;
         velocity = ClampSpeed(velocity);
 
-        Vector3 nextPosition = transform.position + (Vector3)(velocity * deltaTime);
+        Vector3 previousPosition = transform.position;
+        Vector3 nextPosition = previousPosition + (Vector3)(velocity * deltaTime);
         nextPosition.z = sideViewPlaneZ;
         transform.position = nextPosition;
 
-        CheckResolution();
+        CheckResolution(previousPosition, nextPosition);
     }
 
     public void Configure(WeaponData data, WindManager wind)
@@ -87,6 +94,12 @@ public class ProjectileController : MonoBehaviour
         weaponData = data;
         windManager = wind;
         ApplyWeaponPresentation();
+    }
+
+    public void Configure(WeaponData data, WindManager wind, UnitController owner)
+    {
+        Configure(data, wind);
+        ownerUnit = owner;
     }
 
     public void Launch(Vector2 initialVelocity)
@@ -110,6 +123,7 @@ public class ProjectileController : MonoBehaviour
         maxProjectileSpeed = Mathf.Max(0f, maxProjectileSpeed);
         projectileWindAccelerationScale = Mathf.Max(0f, projectileWindAccelerationScale);
         projectileLifetime = Mathf.Max(0.1f, projectileLifetime);
+        unitHitboxSampleDistance = Mathf.Max(0.01f, unitHitboxSampleDistance);
         impactVisualDuration = Mathf.Max(0.01f, impactVisualDuration);
         impactVisualStartSize = Mathf.Max(0.01f, impactVisualStartSize);
         impactVisualRadiusScale = Mathf.Max(0f, impactVisualRadiusScale);
@@ -138,9 +152,14 @@ public class ProjectileController : MonoBehaviour
         transform.localScale = Vector3.one * weaponData.ProjectileSize;
     }
 
-    private void CheckResolution()
+    private void CheckResolution(Vector3 previousPosition, Vector3 currentPosition)
     {
-        Vector3 position = transform.position;
+        if (TryResolveUnitHit(previousPosition, currentPosition))
+        {
+            return;
+        }
+
+        Vector3 position = currentPosition;
         Vector2 position2D = new Vector2(position.x, position.y);
 
         if (position.y <= groundY && velocity.y <= 0f)
@@ -165,6 +184,63 @@ public class ProjectileController : MonoBehaviour
         {
             Resolve();
         }
+    }
+
+    private bool TryResolveUnitHit(Vector3 previousPosition, Vector3 currentPosition)
+    {
+        if (!detectUnitHitboxes)
+        {
+            return false;
+        }
+
+        UnitHitbox[] hitboxes = FindObjectsByType<UnitHitbox>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        UnitHitbox closestHitbox = null;
+        UnitController closestUnit = null;
+        Vector2 closestHitPoint = default;
+        float closestDistanceSqr = float.MaxValue;
+
+        Vector2 segmentStart = new Vector2(previousPosition.x, previousPosition.y);
+        Vector2 segmentEnd = new Vector2(currentPosition.x, currentPosition.y);
+
+        for (int i = 0; i < hitboxes.Length; i++)
+        {
+            UnitHitbox hitbox = hitboxes[i];
+            if (hitbox == null || !hitbox.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            UnitController hitUnit = hitbox.Unit;
+            if (hitUnit == null || hitUnit == ownerUnit)
+            {
+                continue;
+            }
+
+            if (!hitbox.TryGetFirstHitOnSegment(segmentStart, segmentEnd, unitHitboxSampleDistance, out Vector2 hitPoint))
+            {
+                continue;
+            }
+
+            float distanceSqr = (hitPoint - segmentStart).sqrMagnitude;
+            if (distanceSqr < closestDistanceSqr)
+            {
+                closestDistanceSqr = distanceSqr;
+                closestHitbox = hitbox;
+                closestUnit = hitUnit;
+                closestHitPoint = hitPoint;
+            }
+        }
+
+        if (closestHitbox == null || closestUnit == null)
+        {
+            return false;
+        }
+
+        Vector3 impactPosition = new Vector3(closestHitPoint.x, closestHitPoint.y, sideViewPlaneZ);
+        Debug.Log($"Projectile hit {closestUnit.name} at {impactPosition}");
+        SpawnImpactVisual(impactPosition);
+        Resolve();
+        return true;
     }
 
     private Vector2 ClampSpeed(Vector2 candidateVelocity)
