@@ -24,6 +24,15 @@ public class ProjectileController : MonoBehaviour
     [SerializeField] private float groundY = -1.25f;
     [SerializeField] private float sideViewPlaneZ;
 
+    [Header("Impact Visual")]
+    [SerializeField] private bool spawnImpactVisual = true;
+    [SerializeField] private float impactVisualDuration = 0.45f;
+    [SerializeField] private float impactVisualStartSize = 0.25f;
+    [SerializeField] private float impactVisualRadiusScale = 0.6f;
+    [SerializeField] private float impactVisualMinEndSize = 0.45f;
+    [SerializeField] private float impactVisualMaxEndSize = 1.8f;
+    [SerializeField, Range(0f, 1f)] private float impactVisualStartAlpha = 0.75f;
+
     public WeaponData WeaponData => weaponData;
     public Vector2 Velocity => velocity;
     public bool Launched => launched;
@@ -101,6 +110,11 @@ public class ProjectileController : MonoBehaviour
         maxProjectileSpeed = Mathf.Max(0f, maxProjectileSpeed);
         projectileWindAccelerationScale = Mathf.Max(0f, projectileWindAccelerationScale);
         projectileLifetime = Mathf.Max(0.1f, projectileLifetime);
+        impactVisualDuration = Mathf.Max(0.01f, impactVisualDuration);
+        impactVisualStartSize = Mathf.Max(0.01f, impactVisualStartSize);
+        impactVisualRadiusScale = Mathf.Max(0f, impactVisualRadiusScale);
+        impactVisualMinEndSize = Mathf.Max(0.01f, impactVisualMinEndSize);
+        impactVisualMaxEndSize = Mathf.Max(impactVisualMinEndSize, impactVisualMaxEndSize);
     }
 
     private void ApplyWeaponPresentation()
@@ -131,7 +145,12 @@ public class ProjectileController : MonoBehaviour
 
         if (position.y <= groundY && velocity.y <= 0f)
         {
-            Debug.Log($"Projectile impact at {position}");
+            Vector3 impactPosition = position;
+            impactPosition.y = groundY;
+            impactPosition.z = sideViewPlaneZ;
+
+            Debug.Log($"Projectile impact at {impactPosition}");
+            SpawnImpactVisual(impactPosition);
             Resolve();
             return;
         }
@@ -162,6 +181,28 @@ public class ProjectileController : MonoBehaviour
         }
 
         return candidateVelocity.normalized * maxProjectileSpeed;
+    }
+
+    private void SpawnImpactVisual(Vector3 impactPosition)
+    {
+        if (!spawnImpactVisual)
+        {
+            return;
+        }
+
+        GameObject visualObject = new GameObject("Projectile Impact Visual");
+        visualObject.transform.position = impactPosition;
+
+        SpriteRenderer visualRenderer = visualObject.AddComponent<SpriteRenderer>();
+        visualRenderer.sortingOrder = spriteRenderer != null ? spriteRenderer.sortingOrder + 1 : 10;
+
+        ExplosionVisual explosionVisual = visualObject.AddComponent<ExplosionVisual>();
+        float blastRadius = weaponData != null ? weaponData.BlastRadius : impactVisualMinEndSize;
+        float endSize = Mathf.Clamp(blastRadius * impactVisualRadiusScale * 2f, impactVisualMinEndSize, impactVisualMaxEndSize);
+        Color visualColor = weaponData != null ? weaponData.ProjectileColor : Color.yellow;
+        visualColor.a = impactVisualStartAlpha;
+
+        explosionVisual.Configure(impactVisualStartSize, endSize, impactVisualDuration, visualColor);
     }
 
     private void Resolve()
