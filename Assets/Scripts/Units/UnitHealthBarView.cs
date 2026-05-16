@@ -108,13 +108,15 @@ public class UnitHealthBarView : MonoBehaviour
 
         float safeWidth = Mathf.Max(0.05f, width);
         float safeHeight = Mathf.Max(0.02f, height);
+        float maxTotalDurability = Mathf.Max(0f, unit.MaxHp + unit.MaxShield);
+        float hpPercentOfTotal = maxTotalDurability > 0f ? Mathf.Clamp01(unit.CurrentHp / maxTotalDurability) : 0f;
+        float shieldPercentOfTotal = maxTotalDurability > 0f ? Mathf.Clamp01(unit.CurrentShield / maxTotalDurability) : 0f;
         float hpPercent = unit.MaxHp > 0 ? Mathf.Clamp01(unit.CurrentHp / (float)unit.MaxHp) : 0f;
-        float shieldPercent = unit.MaxShield > 0 ? Mathf.Clamp01(unit.CurrentShield / (float)unit.MaxShield) : 0f;
 
         SetCenteredSegment(borderRenderer, new Vector2(safeWidth + borderThickness * 2f, safeHeight + borderThickness * 2f), borderColor, true);
         SetCenteredSegment(backgroundRenderer, new Vector2(safeWidth, safeHeight), backgroundColor, true);
-        SetLeftFillSegment(hpRenderer, hpPercent, safeWidth, safeHeight, GetHpColor(hpPercent), hpPercent > 0f, 0f);
-        SetLeftFillSegment(shieldRenderer, shieldPercent, safeWidth, safeHeight, shieldColor, shieldPercent > 0f, 0f);
+        SetFillSegment(hpRenderer, 0f, hpPercentOfTotal, safeWidth, safeHeight, GetHpColor(hpPercent), hpPercentOfTotal > 0f, 0f);
+        SetFillSegment(shieldRenderer, hpPercentOfTotal, shieldPercentOfTotal, safeWidth, safeHeight, shieldColor, shieldPercentOfTotal > 0f, 0f);
     }
 
     private void SetCenteredSegment(SpriteRenderer targetRenderer, Vector2 size, Color color, bool visible)
@@ -130,17 +132,20 @@ public class UnitHealthBarView : MonoBehaviour
         targetRenderer.transform.localScale = new Vector3(size.x, size.y, 1f);
     }
 
-    private void SetLeftFillSegment(SpriteRenderer targetRenderer, float percent, float segmentWidth, float segmentHeight, Color color, bool visible, float yOffset)
+    private void SetFillSegment(SpriteRenderer targetRenderer, float startPercent, float fillPercent, float segmentWidth, float segmentHeight, Color color, bool visible, float yOffset)
     {
         if (targetRenderer == null)
         {
             return;
         }
 
-        float fillWidth = segmentWidth * Mathf.Clamp01(percent);
+        float clampedStartPercent = Mathf.Clamp01(startPercent);
+        float clampedFillPercent = Mathf.Clamp01(fillPercent);
+        float fillWidth = segmentWidth * Mathf.Min(clampedFillPercent, 1f - clampedStartPercent);
+        float fillStartX = -segmentWidth * 0.5f + segmentWidth * clampedStartPercent;
         targetRenderer.enabled = visible && fillWidth > 0f;
         targetRenderer.color = color;
-        targetRenderer.transform.localPosition = new Vector3(-segmentWidth * 0.5f + fillWidth * 0.5f, yOffset, 0f);
+        targetRenderer.transform.localPosition = new Vector3(fillStartX + fillWidth * 0.5f, yOffset, 0f);
         targetRenderer.transform.localScale = new Vector3(fillWidth, segmentHeight, 1f);
     }
 
