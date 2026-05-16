@@ -8,6 +8,7 @@ public class TurnManager : MonoBehaviour
     [SerializeField] private int activeUnitIndex;
 
     private readonly List<UnitController> subscribedUnits = new List<UnitController>();
+    private int passInputBlockedFrame = -1;
 
     public IReadOnlyList<UnitController> Units => units;
     public int ActiveUnitIndex => activeUnitIndex;
@@ -59,6 +60,7 @@ public class TurnManager : MonoBehaviour
         }
 
         activeUnitIndex = (activeUnitIndex + 1) % units.Count;
+        passInputBlockedFrame = Time.frameCount;
         RefreshActiveUnitFlags();
 
         if (ActiveUnit != null)
@@ -69,7 +71,7 @@ public class TurnManager : MonoBehaviour
 
     public void RequestPass(UnitController unit)
     {
-        if (unit == null || unit != ActiveUnit || unit.IsCharging || unit.ActiveProjectile != null)
+        if (unit == null || unit != ActiveUnit || unit.IsCharging || unit.ActiveProjectile != null || Time.frameCount == passInputBlockedFrame)
         {
             return;
         }
