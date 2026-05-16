@@ -92,6 +92,7 @@ public class UnitController : MonoBehaviour
 
     public event Action<UnitController> ProjectileResolved;
     public event Action<UnitController> PassRequested;
+    public event Action<UnitController> KnockedOut;
 
     private void Awake()
     {
@@ -289,8 +290,28 @@ public class UnitController : MonoBehaviour
             isActiveTurn = false;
             CancelPowerCharge();
             Debug.Log($"{name} knocked out");
+            RefreshView();
+            KnockedOut?.Invoke(this);
+            return;
         }
 
+        RefreshView();
+    }
+
+    public void ResetStatsForRespawn()
+    {
+        if (vehicleData != null)
+        {
+            maxHp = Mathf.Max(0, vehicleData.MaxHp);
+            maxShield = Mathf.Max(0, vehicleData.MaxShield);
+        }
+
+        currentHp = maxHp;
+        currentShield = maxShield;
+        isKnockedOut = false;
+        isActiveTurn = false;
+        CancelPowerCharge();
+        ResetMovement();
         RefreshView();
     }
 

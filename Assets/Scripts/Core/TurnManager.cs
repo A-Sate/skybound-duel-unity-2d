@@ -3,6 +3,14 @@ using UnityEngine;
 
 public class TurnManager : MonoBehaviour
 {
+    [Header("Team Lives")]
+    [SerializeField] private int blueTeamLives = 3;
+    [SerializeField] private int redTeamLives = 3;
+
+    [Header("Respawn Foundation")]
+    [SerializeField] private Vector3 blueRespawnPosition = new Vector3(-5f, -1.25f, 0f);
+    [SerializeField] private Vector3 redRespawnPosition = new Vector3(5f, -1.25f, 0f);
+
     [Header("Turn State")]
     [SerializeField] private List<UnitController> units = new List<UnitController>();
     [SerializeField] private int activeUnitIndex;
@@ -12,8 +20,16 @@ public class TurnManager : MonoBehaviour
     private bool hasLoggedMatchResult;
 
     public IReadOnlyList<UnitController> Units => units;
+    public int BlueTeamLives => blueTeamLives;
+    public int RedTeamLives => redTeamLives;
     public int ActiveUnitIndex => activeUnitIndex;
     public UnitController ActiveUnit => activeUnitIndex < 0 || activeUnitIndex >= units.Count ? null : units[activeUnitIndex];
+
+    private void OnValidate()
+    {
+        blueTeamLives = Mathf.Max(0, blueTeamLives);
+        redTeamLives = Mathf.Max(0, redTeamLives);
+    }
 
     public void Initialize()
     {
@@ -126,6 +142,7 @@ public class TurnManager : MonoBehaviour
 
         unit.ProjectileResolved += HandleUnitProjectileResolved;
         unit.PassRequested += HandleUnitPassRequested;
+        unit.KnockedOut += HandleUnitKnockedOut;
         subscribedUnits.Add(unit);
     }
 
@@ -137,10 +154,56 @@ public class TurnManager : MonoBehaviour
             {
                 subscribedUnits[i].ProjectileResolved -= HandleUnitProjectileResolved;
                 subscribedUnits[i].PassRequested -= HandleUnitPassRequested;
+                subscribedUnits[i].KnockedOut -= HandleUnitKnockedOut;
             }
         }
 
         subscribedUnits.Clear();
+    }
+
+    private void HandleUnitKnockedOut(UnitController unit)
+    {
+        if (unit == null)
+        {
+            return;
+        }
+
+        int livesRemaining = ConsumeTeamLife(unit.Team);
+        if (livesRemaining > 0)
+        {
+            RespawnUnit(unit);
+            return;
+        }
+
+        RefreshActiveUnitFlags();
+        LogWinningTeamIfResolved();
+    }
+
+    private int ConsumeTeamLife(UnitTeam team)
+    {
+        int livesRemaining;
+        if (team == UnitTeam.Blue)
+        {
+            blueTeamLives = Mathf.Max(0, blueTeamLives - 1);
+            livesRemaining = blueTeamLives;
+        }
+        else
+        {
+            redTeamLives = Mathf.Max(0, redTeamLives - 1);
+            livesRemaining = redTeamLives;
+        }
+
+        Debug.Log($"{team} Team lost 1 life. Lives remaining: {livesRemaining}");
+        return livesRemaining;
+    }
+
+    private void RespawnUnit(UnitController unit)
+    {
+        Vector3 respawnPosition = unit.Team == UnitTeam.Blue ? blueRespawnPosition : redRespawnPosition;
+        unit.transform.position = respawnPosition;
+        unit.ResetStatsForRespawn();
+
+        Debug.Log($"{unit.name} respawned at {respawnPosition}");
     }
 
     private void RefreshActiveUnitFlags()
