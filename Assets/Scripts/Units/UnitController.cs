@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -76,6 +77,8 @@ public class UnitController : MonoBehaviour
     public float MaxMovement => maxMovement;
     public float MoveSpeed => moveSpeed;
     public float SlopeRange => slopeRange;
+
+    public event Action<UnitController> ProjectileResolved;
 
     private void Awake()
     {
@@ -304,7 +307,9 @@ public class UnitController : MonoBehaviour
     {
         if (activeProjectile == projectile)
         {
+            projectile.Resolved -= HandleProjectileResolved;
             activeProjectile = null;
+            ProjectileResolved?.Invoke(this);
         }
     }
 
