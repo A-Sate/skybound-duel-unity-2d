@@ -22,7 +22,7 @@ public class TurnManager : MonoBehaviour
             units.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
         }
 
-        RefreshProjectileResolutionSubscriptions();
+        RefreshUnitEventSubscriptions();
 
         activeUnitIndex = units.Count == 0 ? -1 : Mathf.Clamp(activeUnitIndex, 0, units.Count - 1);
         RefreshActiveUnitFlags();
@@ -41,7 +41,7 @@ public class TurnManager : MonoBehaviour
         }
 
         units.Add(unit);
-        SubscribeToProjectileResolution(unit);
+        SubscribeToUnitEvents(unit);
         if (activeUnitIndex < 0)
         {
             activeUnitIndex = 0;
@@ -67,9 +67,20 @@ public class TurnManager : MonoBehaviour
         }
     }
 
+    public void RequestPass(UnitController unit)
+    {
+        if (unit == null || unit != ActiveUnit || unit.IsCharging || unit.ActiveProjectile != null)
+        {
+            return;
+        }
+
+        Debug.Log($"{unit.name} passed turn");
+        AdvanceTurn();
+    }
+
     private void OnDestroy()
     {
-        ClearProjectileResolutionSubscriptions();
+        ClearUnitEventSubscriptions();
     }
 
     private void HandleUnitProjectileResolved(UnitController unit)
@@ -82,17 +93,22 @@ public class TurnManager : MonoBehaviour
         AdvanceTurn();
     }
 
-    private void RefreshProjectileResolutionSubscriptions()
+    private void HandleUnitPassRequested(UnitController unit)
     {
-        ClearProjectileResolutionSubscriptions();
+        RequestPass(unit);
+    }
+
+    private void RefreshUnitEventSubscriptions()
+    {
+        ClearUnitEventSubscriptions();
 
         for (int i = 0; i < units.Count; i++)
         {
-            SubscribeToProjectileResolution(units[i]);
+            SubscribeToUnitEvents(units[i]);
         }
     }
 
-    private void SubscribeToProjectileResolution(UnitController unit)
+    private void SubscribeToUnitEvents(UnitController unit)
     {
         if (unit == null || subscribedUnits.Contains(unit))
         {
@@ -100,16 +116,18 @@ public class TurnManager : MonoBehaviour
         }
 
         unit.ProjectileResolved += HandleUnitProjectileResolved;
+        unit.PassRequested += HandleUnitPassRequested;
         subscribedUnits.Add(unit);
     }
 
-    private void ClearProjectileResolutionSubscriptions()
+    private void ClearUnitEventSubscriptions()
     {
         for (int i = 0; i < subscribedUnits.Count; i++)
         {
             if (subscribedUnits[i] != null)
             {
                 subscribedUnits[i].ProjectileResolved -= HandleUnitProjectileResolved;
+                subscribedUnits[i].PassRequested -= HandleUnitPassRequested;
             }
         }
 

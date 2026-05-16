@@ -79,6 +79,7 @@ public class UnitController : MonoBehaviour
     public float SlopeRange => slopeRange;
 
     public event Action<UnitController> ProjectileResolved;
+    public event Action<UnitController> PassRequested;
 
     private void Awake()
     {
@@ -100,6 +101,11 @@ public class UnitController : MonoBehaviour
         }
 
         HandlePowerChargeInput(Time.deltaTime);
+        if (TryRequestPass())
+        {
+            return;
+        }
+
         if (isCharging)
         {
             return;
@@ -236,6 +242,17 @@ public class UnitController : MonoBehaviour
         {
             EndPowerCharge();
         }
+    }
+
+    private bool TryRequestPass()
+    {
+        if (!isActiveTurn || isCharging || activeProjectile != null || !WasPassPressedThisFrame())
+        {
+            return false;
+        }
+
+        PassRequested?.Invoke(this);
+        return true;
     }
 
     private void BeginPowerCharge()
@@ -394,6 +411,12 @@ public class UnitController : MonoBehaviour
     {
         Keyboard keyboard = Keyboard.current;
         return keyboard != null && keyboard.spaceKey.isPressed;
+    }
+
+    private static bool WasPassPressedThisFrame()
+    {
+        Keyboard keyboard = Keyboard.current;
+        return keyboard != null && keyboard.pKey.wasPressedThisFrame;
     }
 
     private float ClampLocalAngle(float angle)
