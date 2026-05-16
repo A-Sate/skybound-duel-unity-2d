@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 public enum UnitTeam
 {
@@ -26,8 +27,12 @@ public class UnitController : MonoBehaviour
     [SerializeField] private bool isActiveTurn;
 
     [Header("Combat Foundation")]
-    [SerializeField] private int hp = 750;
-    [SerializeField] private int shield = 250;
+    [FormerlySerializedAs("hp")]
+    [SerializeField] private int currentHp = 750;
+    [SerializeField] private int maxHp = 750;
+    [FormerlySerializedAs("shield")]
+    [SerializeField] private int currentShield = 250;
+    [SerializeField] private int maxShield = 250;
     [SerializeField] private float localAngle = 45f;
     [SerializeField] private float localAngleAdjustSpeed = 60f;
 
@@ -60,8 +65,12 @@ public class UnitController : MonoBehaviour
     public UnitTeam Team => team;
     public UnitFacing Facing => facing;
     public bool IsActiveTurn => isActiveTurn;
-    public int Hp => hp;
-    public int Shield => shield;
+    public int Hp => currentHp;
+    public int CurrentHp => currentHp;
+    public int MaxHp => maxHp;
+    public int Shield => currentShield;
+    public int CurrentShield => currentShield;
+    public int MaxShield => maxShield;
     public float LocalAngle => localAngle;
     public float MinLocalAngle => GetAllowedLocalAngleRange().x;
     public float MaxLocalAngle => GetAllowedLocalAngleRange().y;
@@ -125,8 +134,10 @@ public class UnitController : MonoBehaviour
         currentPower = Mathf.Clamp(currentPower, 0f, 100f);
         powerChargeSpeed = Mathf.Max(0f, powerChargeSpeed);
         powerVelocityMultiplier = Mathf.Max(0f, powerVelocityMultiplier);
-        hp = Mathf.Max(0, hp);
-        shield = Mathf.Max(0, shield);
+        maxHp = Mathf.Max(0, maxHp);
+        maxShield = Mathf.Max(0, maxShield);
+        currentHp = Mathf.Clamp(currentHp, 0, maxHp);
+        currentShield = Mathf.Clamp(currentShield, 0, maxShield);
         maxMovement = Mathf.Max(0f, maxMovement);
         movement = Mathf.Clamp(movement, 0f, maxMovement);
         moveSpeed = Mathf.Max(0f, moveSpeed);
@@ -206,12 +217,42 @@ public class UnitController : MonoBehaviour
             return;
         }
 
-        hp = vehicleData.MaxHp;
-        shield = vehicleData.MaxShield;
+        InitializeStatsFromVehicleData();
         moveSpeed = vehicleData.MoveSpeed;
         maxMovement = vehicleData.MaxMovement;
         movement = maxMovement;
         slopeRange = vehicleData.SlopeRange;
+    }
+
+    public void InitializeStatsFromVehicleData()
+    {
+        if (vehicleData == null)
+        {
+            return;
+        }
+
+        maxHp = Mathf.Max(0, vehicleData.MaxHp);
+        maxShield = Mathf.Max(0, vehicleData.MaxShield);
+        currentHp = maxHp;
+        currentShield = maxShield;
+    }
+
+    public void ApplyDamage(float amount)
+    {
+        int finalDamage = Mathf.Max(0, Mathf.RoundToInt(amount));
+        if (finalDamage <= 0)
+        {
+            Debug.Log($"{name} took 0 damage. Shield: {currentShield}/{maxShield}, HP: {currentHp}/{maxHp}");
+            return;
+        }
+
+        int absorbedByShield = Mathf.Min(currentShield, finalDamage);
+        currentShield -= absorbedByShield;
+
+        int remainingDamage = finalDamage - absorbedByShield;
+        currentHp = Mathf.Max(0, currentHp - remainingDamage);
+
+        Debug.Log($"{name} took {finalDamage} damage. Shield: {currentShield}/{maxShield}, HP: {currentHp}/{maxHp}");
     }
 
     public void ResetMovement()

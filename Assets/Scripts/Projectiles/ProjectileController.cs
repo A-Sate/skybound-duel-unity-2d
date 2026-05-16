@@ -193,7 +193,7 @@ public class ProjectileController : MonoBehaviour
             return false;
         }
 
-        UnitHitbox[] hitboxes = FindObjectsByType<UnitHitbox>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        UnitHitbox[] hitboxes = FindObjectsByType<UnitHitbox>(FindObjectsInactive.Exclude);
         UnitHitbox closestHitbox = null;
         UnitController closestUnit = null;
         Vector2 closestHitPoint = default;
@@ -238,6 +238,7 @@ public class ProjectileController : MonoBehaviour
 
         Vector3 impactPosition = new Vector3(closestHitPoint.x, closestHitPoint.y, sideViewPlaneZ);
         Debug.Log($"Projectile hit {closestUnit.name} at {impactPosition}");
+        closestUnit.ApplyDamage(weaponData != null ? weaponData.Damage : 0);
         SpawnImpactVisual(impactPosition);
         Resolve();
         return true;
