@@ -718,6 +718,7 @@ GameObject:
   - component: {fileID: 1104935005}
   - component: {fileID: 1104935004}
   - component: {fileID: 1104935003}
+  - component: {fileID: 1104935007}
   m_Layer: 0
   m_Name: Foundation Managers
   m_TagString: Untagged
@@ -771,6 +772,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   turnManager: {fileID: 1104935004}
   windManager: {fileID: 1104935003}
+--- !u!114 &1104935007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1104935002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f3fd605587042418971086ca363c5d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameplayHudController
+  turnManager: {fileID: 1104935004}
+  canvas: {fileID: 0}
+  panelSize: {x: 860, y: 104}
+  panelOffset: {x: 0, y: 18}
+  labelFontSize: 18
+  passFontSize: 20
+  panelColor: {r: 0.04, g: 0.06, b: 0.1, a: 0.82}
+  textColor: {r: 0.95, g: 0.97, b: 1, a: 1}
+  mutedTextColor: {r: 0.7, g: 0.76, b: 0.86, a: 1}
+  blueTeamColor: {r: 0.25, g: 0.55, b: 1, a: 1}
+  redTeamColor: {r: 1, g: 0.35, b: 0.3, a: 1}
+  passButtonColor: {r: 0.14, g: 0.18, b: 0.27, a: 0.95}
 --- !u!4 &1104935006
 Transform:
   m_ObjectHideFlags: 0
