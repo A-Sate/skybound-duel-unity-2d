@@ -556,15 +556,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UnitHealthBarView
   unit: {fileID: 876401976}
-  width: 1.25
-  height: 0.14
-  verticalOffset: 0.72
-  borderThickness: 0.025
-  shieldLayerHeightPercent: 0.42
+  width: 1.56
+  height: 0.1
+  verticalOffset: -0.18
+  borderThickness: 0.015
   zOffset: 0
   sortingOrder: 40
   shieldColor: {r: 0.32156864, g: 0.34117648, b: 0.6156863, a: 1}
-  hpHighColor: {r: 0.5176471, g: 0.8, b: 0.08627451, a: 1}
+  hpHighColor: {r: 0.13333334, g: 0.77254903, b: 0.36862746, a: 1}
   hpMidColor: {r: 0.9607843, g: 0.61960787, b: 0.043137256, a: 1}
   hpLowColor: {r: 0.9372549, g: 0.26666668, b: 0.26666668, a: 1}
   backgroundColor: {r: 0.06666667, g: 0.09411765, b: 0.15294118, a: 1}
@@ -952,15 +951,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UnitHealthBarView
   unit: {fileID: 1171695210}
-  width: 1.25
-  height: 0.14
-  verticalOffset: 0.72
-  borderThickness: 0.025
-  shieldLayerHeightPercent: 0.42
+  width: 1.56
+  height: 0.1
+  verticalOffset: -0.18
+  borderThickness: 0.015
   zOffset: 0
   sortingOrder: 40
   shieldColor: {r: 0.32156864, g: 0.34117648, b: 0.6156863, a: 1}
-  hpHighColor: {r: 0.5176471, g: 0.8, b: 0.08627451, a: 1}
+  hpHighColor: {r: 0.13333334, g: 0.77254903, b: 0.36862746, a: 1}
   hpMidColor: {r: 0.9607843, g: 0.61960787, b: 0.043137256, a: 1}
   hpLowColor: {r: 0.9372549, g: 0.26666668, b: 0.26666668, a: 1}
   backgroundColor: {r: 0.06666667, g: 0.09411765, b: 0.15294118, a: 1}

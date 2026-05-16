@@ -6,17 +6,16 @@ public class UnitHealthBarView : MonoBehaviour
     [SerializeField] private UnitController unit;
 
     [Header("Layout")]
-    [SerializeField] private float width = 1.25f;
-    [SerializeField] private float height = 0.14f;
-    [SerializeField] private float verticalOffset = 0.72f;
-    [SerializeField] private float borderThickness = 0.025f;
-    [SerializeField, Range(0.1f, 1f)] private float shieldLayerHeightPercent = 0.42f;
+    [SerializeField] private float width = 1.56f;
+    [SerializeField] private float height = 0.1f;
+    [SerializeField] private float verticalOffset = -0.18f;
+    [SerializeField] private float borderThickness = 0.015f;
     [SerializeField] private float zOffset;
     [SerializeField] private int sortingOrder = 40;
 
     [Header("Colors")]
     [SerializeField] private Color shieldColor = new Color32(0x52, 0x57, 0x9d, 0xff);
-    [SerializeField] private Color hpHighColor = new Color32(0x84, 0xcc, 0x16, 0xff);
+    [SerializeField] private Color hpHighColor = new Color32(0x22, 0xc5, 0x5e, 0xff);
     [SerializeField] private Color hpMidColor = new Color32(0xf5, 0x9e, 0x0b, 0xff);
     [SerializeField] private Color hpLowColor = new Color32(0xef, 0x44, 0x44, 0xff);
     [SerializeField] private Color backgroundColor = new Color32(0x11, 0x18, 0x27, 0xff);
@@ -115,10 +114,7 @@ public class UnitHealthBarView : MonoBehaviour
         SetCenteredSegment(borderRenderer, new Vector2(safeWidth + borderThickness * 2f, safeHeight + borderThickness * 2f), borderColor, true);
         SetCenteredSegment(backgroundRenderer, new Vector2(safeWidth, safeHeight), backgroundColor, true);
         SetLeftFillSegment(hpRenderer, hpPercent, safeWidth, safeHeight, GetHpColor(hpPercent), hpPercent > 0f, 0f);
-
-        float shieldHeight = safeHeight * shieldLayerHeightPercent;
-        float shieldYOffset = (safeHeight - shieldHeight) * 0.5f;
-        SetLeftFillSegment(shieldRenderer, shieldPercent, safeWidth, shieldHeight, shieldColor, shieldPercent > 0f, shieldYOffset);
+        SetLeftFillSegment(shieldRenderer, shieldPercent, safeWidth, safeHeight, shieldColor, shieldPercent > 0f, 0f);
     }
 
     private void SetCenteredSegment(SpriteRenderer targetRenderer, Vector2 size, Color color, bool visible)
