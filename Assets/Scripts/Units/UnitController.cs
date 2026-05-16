@@ -20,6 +20,7 @@ public class UnitController : MonoBehaviour
     [Header("Data")]
     [SerializeField] private VehicleData vehicleData;
     [SerializeField] private WeaponData weaponData;
+    [SerializeField] private string playerName;
 
     [Header("Turn And Team")]
     [SerializeField] private UnitTeam team;
@@ -63,6 +64,8 @@ public class UnitController : MonoBehaviour
     public VehicleData VehicleData => vehicleData;
     public WeaponData WeaponData => weaponData;
     public WeaponData SelectedWeapon => weaponData;
+    public string PlayerName => string.IsNullOrWhiteSpace(playerName) ? GetDefaultPlayerName() : playerName;
+    public string DisplayName => PlayerName;
     public UnitTeam Team => team;
     public UnitFacing Facing => facing;
     public bool IsActiveTurn => isActiveTurn;
@@ -96,6 +99,7 @@ public class UnitController : MonoBehaviour
 
     private void Awake()
     {
+        EnsureDefaultPlayerName();
         view = GetComponent<UnitView>();
         ResolveWindManager();
         ApplyVehicleData();
@@ -133,6 +137,7 @@ public class UnitController : MonoBehaviour
 
     private void OnValidate()
     {
+        EnsureDefaultPlayerName();
         localAngle = ClampLocalAngle(localAngle);
         localAngleAdjustSpeed = Mathf.Max(0f, localAngleAdjustSpeed);
         currentPower = Mathf.Clamp(currentPower, 0f, 100f);
@@ -545,5 +550,18 @@ public class UnitController : MonoBehaviour
         }
 
         return allowedRange;
+    }
+
+    private void EnsureDefaultPlayerName()
+    {
+        if (string.IsNullOrWhiteSpace(playerName))
+        {
+            playerName = GetDefaultPlayerName();
+        }
+    }
+
+    private string GetDefaultPlayerName()
+    {
+        return team == UnitTeam.Blue ? "Player 1" : "Player 2";
     }
 }

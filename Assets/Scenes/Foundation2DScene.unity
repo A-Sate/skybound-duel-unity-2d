@@ -379,6 +379,7 @@ GameObject:
   - component: {fileID: 876401980}
   - component: {fileID: 876401982}
   - component: {fileID: 876401983}
+  - component: {fileID: 876401984}
   m_Layer: 0
   m_Name: Blue Unit
   m_TagString: Untagged
@@ -400,6 +401,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UnitController
   vehicleData: {fileID: 11400000, guid: 8f7b536cffb242147875827f48317895, type: 2}
   weaponData: {fileID: 11400000, guid: 9b2608d4585523942894d62f3af182ad, type: 2}
+  playerName: Player 1
   team: 0
   facing: 1
   isActiveTurn: 0
@@ -568,6 +570,26 @@ MonoBehaviour:
   hpLowColor: {r: 0.9372549, g: 0.26666668, b: 0.26666668, a: 1}
   backgroundColor: {r: 0.06666667, g: 0.09411765, b: 0.15294118, a: 1}
   borderColor: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &876401984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 876401975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df6c062de8ed4c76bd5702fd7c118a86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UnitNameLabelView
+  unit: {fileID: 876401976}
+  verticalOffset: -0.36
+  fontSize: 48
+  characterSize: 0.035
+  zOffset: 0
+  sortingOrder: 45
+  blueNameColor: {r: 0.25, g: 0.55, b: 1, a: 1}
+  redNameColor: {r: 1, g: 0.35, b: 0.3, a: 1}
 --- !u!120 &876401981
 LineRenderer:
   serializedVersion: 3
@@ -774,6 +796,7 @@ GameObject:
   - component: {fileID: 1171695214}
   - component: {fileID: 1171695216}
   - component: {fileID: 1171695217}
+  - component: {fileID: 1171695218}
   m_Layer: 0
   m_Name: Red Unit
   m_TagString: Untagged
@@ -795,6 +818,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UnitController
   vehicleData: {fileID: 11400000, guid: 8f7b536cffb242147875827f48317895, type: 2}
   weaponData: {fileID: 11400000, guid: 9b2608d4585523942894d62f3af182ad, type: 2}
+  playerName: Player 2
   team: 1
   facing: -1
   isActiveTurn: 0
@@ -963,6 +987,26 @@ MonoBehaviour:
   hpLowColor: {r: 0.9372549, g: 0.26666668, b: 0.26666668, a: 1}
   backgroundColor: {r: 0.06666667, g: 0.09411765, b: 0.15294118, a: 1}
   borderColor: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &1171695218
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1171695209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df6c062de8ed4c76bd5702fd7c118a86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UnitNameLabelView
+  unit: {fileID: 1171695210}
+  verticalOffset: -0.36
+  fontSize: 48
+  characterSize: 0.035
+  zOffset: 0
+  sortingOrder: 45
+  blueNameColor: {r: 0.25, g: 0.55, b: 1, a: 1}
+  redNameColor: {r: 1, g: 0.35, b: 0.3, a: 1}
 --- !u!120 &1171695215
 LineRenderer:
   serializedVersion: 3
