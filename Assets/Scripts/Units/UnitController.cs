@@ -616,9 +616,7 @@ public class UnitController : MonoBehaviour
         projectile.SetSideViewPlane(projectileSideViewPlaneZ);
         projectile.Resolved += HandleProjectileResolved;
 
-        Vector2 launchDirection = GetLocalAimDirection();
-        float launchSpeed = Mathf.Max(0f, weaponToFire.BaseLaunchSpeed + finalPower * powerVelocityMultiplier);
-        projectile.Launch(launchDirection * launchSpeed);
+        projectile.Launch(GetLaunchVelocity(weaponToFire, facing, localAngle, finalPower));
 
         activeProjectile = projectile;
     }
@@ -662,14 +660,39 @@ public class UnitController : MonoBehaviour
         return origin;
     }
 
-    private Vector2 GetLocalAimDirection()
+    public Vector3 GetFiringOriginWorld()
     {
-        float facingSign = facing == UnitFacing.Right ? 1f : -1f;
-        float angleRadians = localAngle * Mathf.Deg2Rad;
+        return GetFiringOrigin();
+    }
+
+    public float GetLaunchSpeed(WeaponData weaponToUse, float power)
+    {
+        if (weaponToUse == null)
+        {
+            return 0f;
+        }
+
+        return Mathf.Max(0f, weaponToUse.BaseLaunchSpeed + Mathf.Clamp(power, 0f, 100f) * powerVelocityMultiplier);
+    }
+
+    public Vector2 GetLaunchVelocity(WeaponData weaponToUse, UnitFacing launchFacing, float launchLocalAngle, float power)
+    {
+        return GetAimDirection(launchFacing, launchLocalAngle) * GetLaunchSpeed(weaponToUse, power);
+    }
+
+    public Vector2 GetAimDirection(UnitFacing aimFacing, float aimLocalAngle)
+    {
+        float facingSign = aimFacing == UnitFacing.Right ? 1f : -1f;
+        float angleRadians = aimLocalAngle * Mathf.Deg2Rad;
 
         return new Vector2(
             Mathf.Cos(angleRadians) * facingSign,
             Mathf.Sin(angleRadians)).normalized;
+    }
+
+    private Vector2 GetLocalAimDirection()
+    {
+        return GetAimDirection(facing, localAngle);
     }
 
     private static float ReadHorizontalInput()

@@ -5,6 +5,11 @@ using UnityEngine;
 [RequireComponent(typeof(SpriteRenderer))]
 public class ProjectileController : MonoBehaviour
 {
+    public const float DefaultGravityY = -4.5f;
+    public const float DefaultMaxProjectileSpeed = 8f;
+    public const float DefaultProjectileWindAccelerationScale = 1f;
+    public const float DefaultGroundY = -1.25f;
+
     [Header("Foundation References")]
     [SerializeField] private WeaponData weaponData;
     [SerializeField] private WindManager windManager;
@@ -17,13 +22,13 @@ public class ProjectileController : MonoBehaviour
     [SerializeField] private float elapsedLifetime;
 
     [Header("Projectile Tuning")]
-    [SerializeField] private Vector2 gravity = new Vector2(0f, -4.5f);
-    [SerializeField] private float maxProjectileSpeed = 8f;
-    [SerializeField] private float projectileWindAccelerationScale = 1f;
+    [SerializeField] private Vector2 gravity = new Vector2(0f, DefaultGravityY);
+    [SerializeField] private float maxProjectileSpeed = DefaultMaxProjectileSpeed;
+    [SerializeField] private float projectileWindAccelerationScale = DefaultProjectileWindAccelerationScale;
     [SerializeField] private Vector2 worldBoundsMin = new Vector2(-24f, -8f);
     [SerializeField] private Vector2 worldBoundsMax = new Vector2(24f, 30f);
     [SerializeField] private float projectileLifetime = 10f;
-    [SerializeField] private float groundY = -1.25f;
+    [SerializeField] private float groundY = DefaultGroundY;
     [SerializeField] private float sideViewPlaneZ;
 
     [Header("Projectile Visual")]

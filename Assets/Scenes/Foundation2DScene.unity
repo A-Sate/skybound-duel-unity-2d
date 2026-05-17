@@ -888,16 +888,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BotController
   unit: {fileID: 1171695210}
   turnManager: {fileID: 1104935004}
+  windManager: {fileID: 1104935003}
   minActionDelay: 0.65
   maxActionDelay: 1.15
-  targetLocalAngle: 45
-  minDesiredPower: 60
-  maxDesiredPower: 80
+  fallbackLocalAngle: 45
+  fallbackMinPower: 60
+  fallbackMaxPower: 80
+  useSelectedWeaponAngleRange: 1
+  minSampledAngle: -15
+  maxSampledAngle: 90
+  angleSampleStep: 5
+  minSampledPower: 20
+  maxSampledPower: 100
+  powerSampleStep: 5
+  simulationStepTime: 0.05
+  maxSimulationTime: 8
+  simulationGravity: {x: 0, y: -4.5}
+  simulationMaxProjectileSpeed: 8
+  simulationProjectileWindAccelerationScale: 1
+  simulationGroundY: -1.25
+  randomAngleError: 2
+  randomPowerError: 4
   logBotActions: 1
   turnState: 0
   targetUnit: {fileID: 0}
   actionDelayRemaining: 0
+  desiredLocalAngle: 0
   desiredPower: 0
+  predictedTargetDistance: 0
 --- !u!114 &1171695211
 MonoBehaviour:
   m_ObjectHideFlags: 0
