@@ -16,10 +16,12 @@ public class TurnManager : MonoBehaviour
     [SerializeField] private int activeUnitIndex;
 
     private readonly List<UnitController> subscribedUnits = new List<UnitController>();
+    private readonly List<UnitTeam> teamsInMatch = new List<UnitTeam>();
     private int passInputBlockedFrame = -1;
     private bool hasLoggedMatchResult;
 
     public IReadOnlyList<UnitController> Units => units;
+    public IReadOnlyList<UnitTeam> TeamsInMatch => teamsInMatch;
     public int BlueTeamLives => blueTeamLives;
     public int RedTeamLives => redTeamLives;
     public int ActiveUnitIndex => activeUnitIndex;
@@ -34,24 +36,23 @@ public class TurnManager : MonoBehaviour
     public void Initialize()
     {
         hasLoggedMatchResult = false;
+        passInputBlockedFrame = -1;
+
+        RemoveMissingUnits();
 
         if (units.Count == 0)
         {
-            UnitController[] sceneUnits = FindObjectsByType<UnitController>(FindObjectsInactive.Exclude);
-            units.AddRange(sceneUnits);
-            units.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
+            DiscoverSceneUnits();
         }
 
+        RefreshTeamsInMatch();
         RefreshUnitEventSubscriptions();
 
-        activeUnitIndex = FindNextAliveUnitIndex(Mathf.Clamp(activeUnitIndex, 0, Mathf.Max(0, units.Count - 1)));
+        int startIndex = units.Count > 0 ? Mathf.Clamp(activeUnitIndex, 0, units.Count - 1) : -1;
+        activeUnitIndex = FindNextPlayableUnitIndex(startIndex);
         RefreshActiveUnitFlags();
 
-        if (ActiveUnit != null)
-        {
-            Debug.Log($"TurnManager active unit: {ActiveUnit.name}");
-        }
-
+        LogActiveUnit();
         LogWinningTeamIfResolved();
     }
 
@@ -63,13 +64,15 @@ public class TurnManager : MonoBehaviour
         }
 
         units.Add(unit);
+        RefreshTeamsInMatch();
         SubscribeToUnitEvents(unit);
-        if (activeUnitIndex < 0 && !unit.IsKnockedOut)
+        if (activeUnitIndex < 0 && IsUnitPlayable(unit))
         {
-            activeUnitIndex = 0;
+            activeUnitIndex = units.Count - 1;
         }
 
         RefreshActiveUnitFlags();
+        LogWinningTeamIfResolved();
     }
 
     public void AdvanceTurn()
@@ -80,21 +83,17 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
-        activeUnitIndex = FindNextAliveUnitIndex(activeUnitIndex + 1);
+        activeUnitIndex = FindNextPlayableUnitIndex(activeUnitIndex + 1);
         passInputBlockedFrame = Time.frameCount;
         RefreshActiveUnitFlags();
 
-        if (ActiveUnit != null)
-        {
-            Debug.Log($"TurnManager active unit: {ActiveUnit.name}");
-        }
-
+        LogActiveUnit();
         LogWinningTeamIfResolved();
     }
 
     public void RequestPass(UnitController unit)
     {
-        if (unit == null || unit != ActiveUnit || unit.IsKnockedOut || unit.IsCharging || unit.ActiveProjectile != null || Time.frameCount == passInputBlockedFrame)
+        if (unit == null || unit != ActiveUnit || !IsUnitPlayable(unit) || unit.IsCharging || unit.ActiveProjectile != null || Time.frameCount == passInputBlockedFrame)
         {
             return;
         }
@@ -172,26 +171,38 @@ public class TurnManager : MonoBehaviour
         if (livesRemaining > 0)
         {
             RespawnUnit(unit);
+            LogWinningTeamIfResolved();
             return;
         }
 
+        unit.SetPermanentlyDefeated();
         RefreshActiveUnitFlags();
         LogWinningTeamIfResolved();
     }
 
+    public int GetTeamLives(UnitTeam team)
+    {
+        return team == UnitTeam.Blue ? blueTeamLives : redTeamLives;
+    }
+
+    public bool HasPlayableUnits(UnitTeam team)
+    {
+        for (int i = 0; i < units.Count; i++)
+        {
+            UnitController unit = units[i];
+            if (unit != null && unit.Team == team && IsUnitPlayable(unit))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private int ConsumeTeamLife(UnitTeam team)
     {
-        int livesRemaining;
-        if (team == UnitTeam.Blue)
-        {
-            blueTeamLives = Mathf.Max(0, blueTeamLives - 1);
-            livesRemaining = blueTeamLives;
-        }
-        else
-        {
-            redTeamLives = Mathf.Max(0, redTeamLives - 1);
-            livesRemaining = redTeamLives;
-        }
+        int livesRemaining = Mathf.Max(0, GetTeamLives(team) - 1);
+        SetTeamLives(team, livesRemaining);
 
         Debug.Log($"{team} Team lost 1 life. Lives remaining: {livesRemaining}");
         return livesRemaining;
@@ -199,7 +210,7 @@ public class TurnManager : MonoBehaviour
 
     private void RespawnUnit(UnitController unit)
     {
-        Vector3 respawnPosition = unit.Team == UnitTeam.Blue ? blueRespawnPosition : redRespawnPosition;
+        Vector3 respawnPosition = GetRespawnPosition(unit.Team);
         unit.transform.position = respawnPosition;
         unit.ResetStatsForRespawn();
 
@@ -212,12 +223,12 @@ public class TurnManager : MonoBehaviour
         {
             if (units[i] != null)
             {
-                units[i].SetActiveTurn(i == activeUnitIndex && !units[i].IsKnockedOut);
+                units[i].SetActiveTurn(i == activeUnitIndex && IsUnitPlayable(units[i]));
             }
         }
     }
 
-    private int FindNextAliveUnitIndex(int startIndex)
+    private int FindNextPlayableUnitIndex(int startIndex)
     {
         if (units.Count == 0)
         {
@@ -229,13 +240,18 @@ public class TurnManager : MonoBehaviour
         {
             int candidateIndex = (normalizedStartIndex + offset) % units.Count;
             UnitController candidate = units[candidateIndex];
-            if (candidate != null && !candidate.IsKnockedOut)
+            if (IsUnitPlayable(candidate))
             {
                 return candidateIndex;
             }
         }
 
         return -1;
+    }
+
+    private bool IsUnitPlayable(UnitController unit)
+    {
+        return unit != null && unit.IsPlayable;
     }
 
     private void LogWinningTeamIfResolved()
@@ -245,32 +261,133 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
-        UnitController survivingUnit = null;
+        UnitTeam survivingTeam = default;
+        bool hasSurvivingTeam = false;
 
         for (int i = 0; i < units.Count; i++)
         {
             UnitController unit = units[i];
-            if (unit == null || unit.IsKnockedOut)
+            if (!IsUnitPlayable(unit))
             {
                 continue;
             }
 
-            if (survivingUnit == null)
+            if (!hasSurvivingTeam)
             {
-                survivingUnit = unit;
+                survivingTeam = unit.Team;
+                hasSurvivingTeam = true;
                 continue;
             }
 
-            if (survivingUnit.Team != unit.Team)
+            if (survivingTeam != unit.Team)
             {
                 return;
             }
         }
 
-        if (survivingUnit != null)
+        if (!hasSurvivingTeam)
         {
-            Debug.Log($"{survivingUnit.Team} Team wins");
-            hasLoggedMatchResult = true;
+            return;
         }
+
+        for (int i = 0; i < teamsInMatch.Count; i++)
+        {
+            UnitTeam team = teamsInMatch[i];
+            if (team == survivingTeam)
+            {
+                continue;
+            }
+
+            if (HasPlayableUnits(team) || GetTeamLives(team) > 0)
+            {
+                return;
+            }
+        }
+
+        Debug.Log($"{survivingTeam} Team wins");
+        hasLoggedMatchResult = true;
+    }
+
+    private void DiscoverSceneUnits()
+    {
+        UnitController[] sceneUnits = FindObjectsByType<UnitController>(FindObjectsInactive.Exclude);
+        units.AddRange(sceneUnits);
+        units.Sort(CompareUnitsForStableDiscovery);
+    }
+
+    private void RemoveMissingUnits()
+    {
+        for (int i = units.Count - 1; i >= 0; i--)
+        {
+            if (units[i] == null)
+            {
+                units.RemoveAt(i);
+            }
+        }
+    }
+
+    private void RefreshTeamsInMatch()
+    {
+        teamsInMatch.Clear();
+        for (int i = 0; i < units.Count; i++)
+        {
+            UnitController unit = units[i];
+            if (unit != null && !teamsInMatch.Contains(unit.Team))
+            {
+                teamsInMatch.Add(unit.Team);
+            }
+        }
+    }
+
+    private void SetTeamLives(UnitTeam team, int lives)
+    {
+        lives = Mathf.Max(0, lives);
+        if (team == UnitTeam.Blue)
+        {
+            blueTeamLives = lives;
+        }
+        else
+        {
+            redTeamLives = lives;
+        }
+    }
+
+    private Vector3 GetRespawnPosition(UnitTeam team)
+    {
+        return team == UnitTeam.Blue ? blueRespawnPosition : redRespawnPosition;
+    }
+
+    private void LogActiveUnit()
+    {
+        if (ActiveUnit != null)
+        {
+            Debug.Log($"TurnManager active unit: {ActiveUnit.DisplayName} ({ActiveUnit.UnitId})");
+        }
+    }
+
+    private static int CompareUnitsForStableDiscovery(UnitController left, UnitController right)
+    {
+        if (left == right)
+        {
+            return 0;
+        }
+
+        if (left == null)
+        {
+            return 1;
+        }
+
+        if (right == null)
+        {
+            return -1;
+        }
+
+        int teamComparison = left.Team.CompareTo(right.Team);
+        if (teamComparison != 0)
+        {
+            return teamComparison;
+        }
+
+        return string.CompareOrdinal(left.UnitId, right.UnitId);
     }
 }

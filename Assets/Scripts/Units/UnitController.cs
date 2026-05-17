@@ -24,6 +24,7 @@ public class UnitController : MonoBehaviour
     [SerializeField] private WeaponData[] availableWeapons = new WeaponData[0];
     [InspectorName("Selected Weapon Index")]
     [SerializeField] private int selectedWeaponIndex;
+    [SerializeField] private string unitId;
     [SerializeField] private string playerName;
 
     [Header("Turn And Team")]
@@ -39,6 +40,7 @@ public class UnitController : MonoBehaviour
     [SerializeField] private int currentShield = 250;
     [SerializeField] private int maxShield = 250;
     [SerializeField] private bool isKnockedOut;
+    [SerializeField] private bool isPermanentlyDefeated;
     [SerializeField] private float localAngle = 45f;
     [SerializeField] private float localAngleAdjustSpeed = 60f;
 
@@ -70,6 +72,7 @@ public class UnitController : MonoBehaviour
     public WeaponData SelectedWeapon => weaponData;
     public WeaponData[] AvailableWeapons => availableWeapons;
     public int SelectedWeaponIndex => selectedWeaponIndex;
+    public string UnitId => string.IsNullOrWhiteSpace(unitId) ? GetDefaultUnitId() : unitId;
     public string PlayerName => string.IsNullOrWhiteSpace(playerName) ? GetDefaultPlayerName() : playerName;
     public string DisplayName => PlayerName;
     public UnitTeam Team => team;
@@ -82,7 +85,9 @@ public class UnitController : MonoBehaviour
     public int CurrentShield => currentShield;
     public int MaxShield => maxShield;
     public bool IsKnockedOut => isKnockedOut;
-    public bool IsDead => isKnockedOut;
+    public bool IsPermanentlyDefeated => isPermanentlyDefeated;
+    public bool IsDead => isKnockedOut || isPermanentlyDefeated;
+    public bool IsPlayable => !isKnockedOut && !isPermanentlyDefeated;
     public float LocalAngle => localAngle;
     public float MinLocalAngle => GetAllowedLocalAngleRange().x;
     public float MaxLocalAngle => GetAllowedLocalAngleRange().y;
@@ -105,6 +110,7 @@ public class UnitController : MonoBehaviour
 
     private void Awake()
     {
+        EnsureDefaultUnitId();
         EnsureDefaultPlayerName();
         ValidateWeaponSelection();
         view = GetComponent<UnitView>();
@@ -146,6 +152,7 @@ public class UnitController : MonoBehaviour
 
     private void OnValidate()
     {
+        EnsureDefaultUnitId();
         EnsureDefaultPlayerName();
         ValidateWeaponSelection();
         localAngle = ClampLocalAngle(localAngle);
@@ -166,7 +173,7 @@ public class UnitController : MonoBehaviour
 
     public void SetActiveTurn(bool active)
     {
-        active = active && !isKnockedOut;
+        active = active && IsPlayable;
         bool becameActive = active && !isActiveTurn;
         isActiveTurn = active;
         if (!active && isCharging)
@@ -256,6 +263,7 @@ public class UnitController : MonoBehaviour
         currentHp = maxHp;
         currentShield = maxShield;
         isKnockedOut = false;
+        isPermanentlyDefeated = false;
     }
 
     public void ApplyDamage(float amount)
@@ -321,6 +329,18 @@ public class UnitController : MonoBehaviour
             return;
         }
 
+        isPermanentlyDefeated = false;
+        RefreshView();
+    }
+
+    public void SetPermanentlyDefeated()
+    {
+        isPermanentlyDefeated = true;
+        isKnockedOut = true;
+        currentHp = 0;
+        currentShield = 0;
+        isActiveTurn = false;
+        CancelPowerCharge();
         RefreshView();
     }
 
@@ -335,6 +355,7 @@ public class UnitController : MonoBehaviour
         currentHp = maxHp;
         currentShield = maxShield;
         isKnockedOut = false;
+        isPermanentlyDefeated = false;
         isActiveTurn = false;
         CancelPowerCharge();
         ResetMovement();
@@ -720,5 +741,39 @@ public class UnitController : MonoBehaviour
     private string GetDefaultPlayerName()
     {
         return team == UnitTeam.Blue ? "Player 1" : "Player 2";
+    }
+
+    private void EnsureDefaultUnitId()
+    {
+        if (string.IsNullOrWhiteSpace(unitId))
+        {
+            unitId = GetDefaultUnitId();
+        }
+    }
+
+    private string GetDefaultUnitId()
+    {
+        string teamPrefix = team.ToString().ToLowerInvariant();
+        string namePart = string.IsNullOrWhiteSpace(playerName) ? GetDefaultPlayerName() : playerName.Trim();
+        return $"{teamPrefix}-{SanitizeUnitIdPart(namePart)}";
+    }
+
+    private static string SanitizeUnitIdPart(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "unit";
+        }
+
+        char[] chars = value.Trim().ToLowerInvariant().ToCharArray();
+        for (int i = 0; i < chars.Length; i++)
+        {
+            char c = chars[i];
+            bool isLetterOrDigit = c >= 'a' && c <= 'z' || c >= '0' && c <= '9';
+            chars[i] = isLetterOrDigit ? c : '-';
+        }
+
+        string sanitized = new string(chars).Trim('-');
+        return string.IsNullOrEmpty(sanitized) ? "unit" : sanitized;
     }
 }
