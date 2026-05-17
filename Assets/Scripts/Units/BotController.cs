@@ -8,8 +8,10 @@ public class BotController : MonoBehaviour
     private enum BotTurnState
     {
         Idle,
-        Waiting,
+        InitialTurnDelay,
+        DelayAfterFacing,
         Aiming,
+        DelayAfterAiming,
         Charging,
         Fired
     }
@@ -28,9 +30,12 @@ public class BotController : MonoBehaviour
     [SerializeField] private TurnManager turnManager;
     [SerializeField] private WindManager windManager;
 
-    [Header("Basic Bot Timing")]
-    [SerializeField] private float minActionDelay = 0.65f;
-    [SerializeField] private float maxActionDelay = 1.15f;
+    [Header("Bot Timing")]
+    [FormerlySerializedAs("minActionDelay")]
+    [SerializeField] private float initialTurnDelay = 0.25f;
+    [FormerlySerializedAs("maxActionDelay")]
+    [SerializeField] private float delayAfterFacing = 1f;
+    [SerializeField] private float delayAfterAiming = 0.35f;
 
     [Header("Smooth Aim")]
     [SerializeField] private float aimAngleTolerance = 0.75f;
@@ -85,8 +90,9 @@ public class BotController : MonoBehaviour
 
     private void OnValidate()
     {
-        minActionDelay = Mathf.Max(0f, minActionDelay);
-        maxActionDelay = Mathf.Max(minActionDelay, maxActionDelay);
+        initialTurnDelay = Mathf.Max(0f, initialTurnDelay);
+        delayAfterFacing = Mathf.Max(0f, delayAfterFacing);
+        delayAfterAiming = Mathf.Max(0f, delayAfterAiming);
         aimAngleTolerance = Mathf.Max(0.01f, aimAngleTolerance);
         fallbackMinPower = Mathf.Clamp(fallbackMinPower, 0f, 100f);
         fallbackMaxPower = Mathf.Clamp(fallbackMaxPower, fallbackMinPower, 100f);
@@ -126,15 +132,23 @@ public class BotController : MonoBehaviour
         switch (turnState)
         {
             case BotTurnState.Idle:
-                BeginTurnPlan();
+                BeginInitialTurnDelay();
                 break;
 
-            case BotTurnState.Waiting:
-                UpdateWaiting(Time.deltaTime);
+            case BotTurnState.InitialTurnDelay:
+                UpdateInitialTurnDelay(Time.deltaTime);
+                break;
+
+            case BotTurnState.DelayAfterFacing:
+                UpdateDelayAfterFacing(Time.deltaTime);
                 break;
 
             case BotTurnState.Aiming:
                 UpdateAiming(Time.deltaTime);
+                break;
+
+            case BotTurnState.DelayAfterAiming:
+                UpdateDelayAfterAiming(Time.deltaTime);
                 break;
 
             case BotTurnState.Charging:
@@ -170,7 +184,25 @@ public class BotController : MonoBehaviour
             turnManager.ActiveUnit == unit;
     }
 
-    private void BeginTurnPlan()
+    private void BeginInitialTurnDelay()
+    {
+        targetUnit = null;
+        actionDelayRemaining = initialTurnDelay;
+        turnState = BotTurnState.InitialTurnDelay;
+    }
+
+    private void UpdateInitialTurnDelay(float deltaTime)
+    {
+        actionDelayRemaining -= Mathf.Max(0f, deltaTime);
+        if (actionDelayRemaining > 0f)
+        {
+            return;
+        }
+
+        PlanShotAndFaceTarget();
+    }
+
+    private void PlanShotAndFaceTarget()
     {
         targetUnit = FindNearestPlayableEnemy();
         if (targetUnit == null)
@@ -192,8 +224,8 @@ public class BotController : MonoBehaviour
         desiredLocalAngle = ClampToSelectedWeaponRange(solution.LocalAngle + Random.Range(-randomAngleError, randomAngleError));
         desiredPower = Mathf.Clamp(solution.Power + Random.Range(-randomPowerError, randomPowerError), 0f, 100f);
         predictedTargetDistance = solution.TargetDistance;
-        actionDelayRemaining = Random.Range(minActionDelay, maxActionDelay);
-        turnState = BotTurnState.Waiting;
+        actionDelayRemaining = delayAfterFacing;
+        turnState = BotTurnState.DelayAfterFacing;
 
         if (logBotActions)
         {
@@ -202,7 +234,7 @@ public class BotController : MonoBehaviour
         }
     }
 
-    private void UpdateWaiting(float deltaTime)
+    private void UpdateDelayAfterFacing(float deltaTime)
     {
         if (!IsTargetPlayable(targetUnit))
         {
@@ -230,6 +262,24 @@ public class BotController : MonoBehaviour
 
         unit.SetFacing(GetFacingToTarget(targetUnit));
         if (!unit.TryMoveLocalAngleToward(desiredLocalAngle, deltaTime, aimAngleTolerance))
+        {
+            return;
+        }
+
+        actionDelayRemaining = delayAfterAiming;
+        turnState = BotTurnState.DelayAfterAiming;
+    }
+
+    private void UpdateDelayAfterAiming(float deltaTime)
+    {
+        if (!IsTargetPlayable(targetUnit))
+        {
+            ResetTurnState();
+            return;
+        }
+
+        actionDelayRemaining -= Mathf.Max(0f, deltaTime);
+        if (actionDelayRemaining > 0f)
         {
             return;
         }

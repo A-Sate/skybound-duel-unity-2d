@@ -59,7 +59,7 @@ public class UnitController : MonoBehaviour
     [Header("Power Foundation")]
     [SerializeField] private float currentPower;
     [SerializeField] private bool isCharging;
-    [SerializeField] private float powerChargeSpeed = 75f;
+    [SerializeField] private float powerChargeSpeed = 63.75f;
     [SerializeField] private WeaponData lockedWeapon;
 
     [Header("Projectile Foundation")]

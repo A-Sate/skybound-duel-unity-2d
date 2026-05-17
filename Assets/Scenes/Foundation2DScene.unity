@@ -419,6 +419,7 @@ MonoBehaviour:
   localAngleAdjustSpeed: 15
   aimTapStepDegrees: 1
   aimHoldDelaySeconds: 0.5
+  powerChargeSpeed: 63.75
   movement: 220
   maxMovement: 220
   moveSpeed: 100
@@ -872,6 +873,7 @@ MonoBehaviour:
   localAngleAdjustSpeed: 15
   aimTapStepDegrees: 1
   aimHoldDelaySeconds: 0.5
+  powerChargeSpeed: 63.75
   movement: 220
   maxMovement: 220
   moveSpeed: 100
@@ -893,8 +895,9 @@ MonoBehaviour:
   unit: {fileID: 1171695210}
   turnManager: {fileID: 1104935004}
   windManager: {fileID: 1104935003}
-  minActionDelay: 0.65
-  maxActionDelay: 1.15
+  initialTurnDelay: 0.25
+  delayAfterFacing: 1
+  delayAfterAiming: 0.35
   aimAngleTolerance: 0.75
   fallbackLocalAngle: 45
   fallbackMinPower: 60
