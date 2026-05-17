@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 [DisallowMultipleComponent]
 public class GameplayHudController : MonoBehaviour
@@ -23,14 +24,16 @@ public class GameplayHudController : MonoBehaviour
     [SerializeField] private Color passButtonColor = new Color(0.14f, 0.18f, 0.27f, 0.95f);
 
     private RectTransform panelRoot;
-    private Text turnText;
-    private Text weaponText;
-    private Text powerText;
-    private Text movementText;
-    private Text blueLivesText;
-    private Text redLivesText;
-    private Text passText;
-    private Font hudFont;
+    private TextMeshProUGUI turnText;
+    private TextMeshProUGUI weaponText;
+    private TextMeshProUGUI powerText;
+    private TextMeshProUGUI movementText;
+    private TextMeshProUGUI blueLivesText;
+    private TextMeshProUGUI redLivesText;
+    private TextMeshProUGUI passText;
+    private TMP_FontAsset hudFontAsset;
+    private bool attemptedResolveTmpFontAsset;
+    private bool warnedMissingTmpFontAsset;
 
     private void Awake()
     {
@@ -78,15 +81,15 @@ public class GameplayHudController : MonoBehaviour
             return;
         }
 
-        hudFont = ResolveFont();
+        hudFontAsset = ResolveTmpFontAsset();
         panelRoot = CreatePanel(canvas.transform);
 
-        turnText = CreateText("Turn Text", panelRoot, new Vector2(0.025f, 0.55f), new Vector2(0.36f, 0.9f), labelFontSize, TextAnchor.MiddleLeft, textColor);
-        weaponText = CreateText("Weapon Text", panelRoot, new Vector2(0.025f, 0.13f), new Vector2(0.36f, 0.48f), labelFontSize, TextAnchor.MiddleLeft, mutedTextColor);
-        powerText = CreateText("Power Text", panelRoot, new Vector2(0.39f, 0.55f), new Vector2(0.58f, 0.9f), labelFontSize, TextAnchor.MiddleLeft, textColor);
-        movementText = CreateText("Movement Text", panelRoot, new Vector2(0.39f, 0.13f), new Vector2(0.58f, 0.48f), labelFontSize, TextAnchor.MiddleLeft, mutedTextColor);
-        blueLivesText = CreateText("Blue Lives Text", panelRoot, new Vector2(0.61f, 0.55f), new Vector2(0.78f, 0.9f), labelFontSize, TextAnchor.MiddleLeft, blueTeamColor);
-        redLivesText = CreateText("Red Lives Text", panelRoot, new Vector2(0.61f, 0.13f), new Vector2(0.78f, 0.48f), labelFontSize, TextAnchor.MiddleLeft, redTeamColor);
+        turnText = CreateText("Turn Text", panelRoot, new Vector2(0.025f, 0.55f), new Vector2(0.36f, 0.9f), labelFontSize, TextAlignmentOptions.Left, textColor);
+        weaponText = CreateText("Weapon Text", panelRoot, new Vector2(0.025f, 0.13f), new Vector2(0.36f, 0.48f), labelFontSize, TextAlignmentOptions.Left, mutedTextColor);
+        powerText = CreateText("Power Text", panelRoot, new Vector2(0.39f, 0.55f), new Vector2(0.58f, 0.9f), labelFontSize, TextAlignmentOptions.Left, textColor);
+        movementText = CreateText("Movement Text", panelRoot, new Vector2(0.39f, 0.13f), new Vector2(0.58f, 0.48f), labelFontSize, TextAlignmentOptions.Left, mutedTextColor);
+        blueLivesText = CreateText("Blue Lives Text", panelRoot, new Vector2(0.61f, 0.55f), new Vector2(0.78f, 0.9f), labelFontSize, TextAlignmentOptions.Left, blueTeamColor);
+        redLivesText = CreateText("Red Lives Text", panelRoot, new Vector2(0.61f, 0.13f), new Vector2(0.78f, 0.48f), labelFontSize, TextAlignmentOptions.Left, redTeamColor);
         passText = CreatePassHint(panelRoot);
     }
 
@@ -125,7 +128,7 @@ public class GameplayHudController : MonoBehaviour
         return rectTransform;
     }
 
-    private Text CreatePassHint(RectTransform parent)
+    private TextMeshProUGUI CreatePassHint(RectTransform parent)
     {
         GameObject passObject = new GameObject("Pass Hint");
         passObject.transform.SetParent(parent, false);
@@ -142,18 +145,18 @@ public class GameplayHudController : MonoBehaviour
         RectTransform passLabelTransform = passLabelObject.AddComponent<RectTransform>();
         SetStretch(passLabelTransform, Vector2.zero, Vector2.one);
 
-        Text text = AddTextComponent(passLabelObject);
-        ConfigureText(text, passFontSize, TextAnchor.MiddleCenter, textColor);
+        TextMeshProUGUI text = AddTextComponent(passLabelObject);
+        ConfigureText(text, passFontSize, TextAlignmentOptions.Center, textColor);
         if (text != null)
         {
             text.text = "PASS (P)";
-            text.fontStyle = FontStyle.Bold;
+            text.fontStyle = FontStyles.Bold;
         }
 
         return text;
     }
 
-    private Text CreateText(string objectName, RectTransform parent, Vector2 anchorMin, Vector2 anchorMax, int fontSize, TextAnchor alignment, Color color)
+    private TextMeshProUGUI CreateText(string objectName, RectTransform parent, Vector2 anchorMin, Vector2 anchorMax, int fontSize, TextAlignmentOptions alignment, Color color)
     {
         GameObject textObject = new GameObject(objectName);
         textObject.transform.SetParent(parent, false);
@@ -161,12 +164,12 @@ public class GameplayHudController : MonoBehaviour
         RectTransform rectTransform = textObject.AddComponent<RectTransform>();
         SetStretch(rectTransform, anchorMin, anchorMax);
 
-        Text text = AddTextComponent(textObject);
+        TextMeshProUGUI text = AddTextComponent(textObject);
         ConfigureText(text, fontSize, alignment, color);
         return text;
     }
 
-    private Text AddTextComponent(GameObject textObject)
+    private TextMeshProUGUI AddTextComponent(GameObject textObject)
     {
         if (textObject == null)
         {
@@ -174,40 +177,45 @@ public class GameplayHudController : MonoBehaviour
             return null;
         }
 
-        Text text = textObject.GetComponent<Text>();
+        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
         if (text == null)
         {
-            text = textObject.AddComponent<Text>();
+            text = textObject.AddComponent<TextMeshProUGUI>();
         }
 
         if (text == null)
         {
-            Debug.LogWarning($"GameplayHudController could not create a UnityEngine.UI.Text component on {textObject.name}.");
+            Debug.LogWarning($"GameplayHudController could not create a TextMeshProUGUI component on {textObject.name}.");
         }
 
         return text;
     }
 
-    private void ConfigureText(Text text, int fontSize, TextAnchor alignment, Color color)
+    private void ConfigureText(TextMeshProUGUI text, int fontSize, TextAlignmentOptions alignment, Color color)
     {
         if (text == null)
         {
-            Debug.LogWarning("GameplayHudController skipped HUD text setup because the UnityEngine.UI.Text component is missing.");
+            Debug.LogWarning("GameplayHudController skipped HUD text setup because the TextMeshProUGUI component is missing.");
             return;
         }
 
-        if (hudFont == null)
+        if (hudFontAsset == null)
         {
-            hudFont = ResolveFont();
+            hudFontAsset = ResolveTmpFontAsset();
         }
 
-        text.font = hudFont;
+        if (hudFontAsset != null)
+        {
+            text.font = hudFontAsset;
+        }
+
         text.fontSize = fontSize;
         text.alignment = alignment;
         text.color = color;
-        text.horizontalOverflow = HorizontalWrapMode.Overflow;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
+        text.enableWordWrapping = false;
+        text.overflowMode = TextOverflowModes.Overflow;
         text.raycastTarget = false;
+        text.margin = Vector4.zero;
     }
 
     private static void SetStretch(RectTransform rectTransform, Vector2 anchorMin, Vector2 anchorMax)
@@ -218,21 +226,48 @@ public class GameplayHudController : MonoBehaviour
         rectTransform.offsetMax = Vector2.zero;
     }
 
-    private Font ResolveFont()
+    private TMP_FontAsset ResolveTmpFontAsset()
     {
-        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (font != null)
+        if (attemptedResolveTmpFontAsset)
         {
-            return font;
+            return hudFontAsset;
         }
 
-        font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        if (font != null)
+        attemptedResolveTmpFontAsset = true;
+
+        try
         {
-            return font;
+            TMP_FontAsset fontAsset = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+            if (fontAsset != null)
+            {
+                return fontAsset;
+            }
+
+            TMP_FontAsset[] availableFontAssets = Resources.LoadAll<TMP_FontAsset>(string.Empty);
+            if (availableFontAssets != null && availableFontAssets.Length > 0)
+            {
+                return availableFontAssets[0];
+            }
+        }
+        catch (System.Exception exception)
+        {
+            WarnMissingTmpFontAsset($"TextMeshPro font lookup failed: {exception.Message}");
+            return null;
         }
 
-        return Font.CreateDynamicFontFromOSFont("Arial", labelFontSize);
+        WarnMissingTmpFontAsset("GameplayHudController could not find a TextMeshPro font asset in Resources. Import TMP Essential Resources so the HUD can use LiberationSans SDF.");
+        return null;
+    }
+
+    private void WarnMissingTmpFontAsset(string message)
+    {
+        if (warnedMissingTmpFontAsset)
+        {
+            return;
+        }
+
+        Debug.LogWarning(message);
+        warnedMissingTmpFontAsset = true;
     }
 
     private void RefreshHud()
@@ -280,7 +315,7 @@ public class GameplayHudController : MonoBehaviour
         SetTextValue(redLivesText, $"Red Lives: {turnManager.RedTeamLives}");
     }
 
-    private static void SetTextValue(Text text, string value)
+    private static void SetTextValue(TextMeshProUGUI text, string value)
     {
         if (text != null)
         {
