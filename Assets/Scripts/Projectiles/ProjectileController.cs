@@ -31,6 +31,7 @@ public class ProjectileController : MonoBehaviour
 
     [Header("Explosion Damage")]
     [SerializeField] private bool applyExplosionDamage = true;
+    [Tooltip("Controls gameplay damage radius by converting HTML-style WeaponData.BlastRadius values into Unity world units.")]
     [SerializeField] private float blastRadiusToWorldScale = 0.01f;
 
     [Header("Unit Hit Detection")]
@@ -41,10 +42,15 @@ public class ProjectileController : MonoBehaviour
     [SerializeField] private bool spawnImpactVisual = true;
     [SerializeField] private float impactVisualDuration = 0.45f;
     [SerializeField] private float impactVisualStartSize = 0.25f;
+    [Tooltip("Controls only the placeholder explosion visual size. It does not affect gameplay damage radius.")]
     [SerializeField] private float impactVisualRadiusScale = 1f;
     [SerializeField] private float impactVisualMinEndSize = 0.45f;
-    [SerializeField] private float impactVisualMaxEndSize = 3f;
     [SerializeField, Range(0f, 1f)] private float impactVisualStartAlpha = 0.75f;
+
+    [Header("Explosion Debug")]
+    [SerializeField] private bool drawExplosionRadiusDebug;
+    [SerializeField] private Color explosionRadiusDebugColor = new Color(1f, 1f, 1f, 0.8f);
+    [SerializeField] private float explosionRadiusDebugDuration = 1.25f;
 
     public WeaponData WeaponData => weaponData;
     public Vector2 Velocity => velocity;
@@ -141,7 +147,7 @@ public class ProjectileController : MonoBehaviour
         impactVisualStartSize = Mathf.Max(0.01f, impactVisualStartSize);
         impactVisualRadiusScale = Mathf.Max(0f, impactVisualRadiusScale);
         impactVisualMinEndSize = Mathf.Max(0.01f, impactVisualMinEndSize);
-        impactVisualMaxEndSize = Mathf.Max(impactVisualMinEndSize, impactVisualMaxEndSize);
+        explosionRadiusDebugDuration = Mathf.Max(0f, explosionRadiusDebugDuration);
     }
 
     private void ApplyWeaponPresentation()
@@ -257,6 +263,7 @@ public class ProjectileController : MonoBehaviour
 
     private void ResolveImpact(Vector3 impactPosition)
     {
+        DrawExplosionRadiusDebug(impactPosition);
         ApplyExplosionDamageAt(impactPosition);
         SpawnImpactVisual(impactPosition);
         Resolve();
@@ -313,20 +320,7 @@ public class ProjectileController : MonoBehaviour
 
     private float GetExplosionDistanceToHitbox(Vector2 explosionCenter, UnitHitbox hitbox)
     {
-        if (hitbox.ContainsWorldPoint(explosionCenter))
-        {
-            return 0f;
-        }
-
-        Vector2 hitboxCenter = GetHitboxWorldCenter(hitbox);
-        return Vector2.Distance(explosionCenter, hitboxCenter);
-    }
-
-    private static Vector2 GetHitboxWorldCenter(UnitHitbox hitbox)
-    {
-        Vector2 localOffset = hitbox.LocalOffset;
-        Vector3 worldCenter = hitbox.transform.TransformPoint(new Vector3(localOffset.x, localOffset.y, 0f));
-        return new Vector2(worldCenter.x, worldCenter.y);
+        return hitbox.GetDistanceToWorldPoint(explosionCenter);
     }
 
     private Vector2 ClampSpeed(Vector2 candidateVelocity)
@@ -359,12 +353,39 @@ public class ProjectileController : MonoBehaviour
         visualRenderer.sortingOrder = spriteRenderer != null ? spriteRenderer.sortingOrder + 1 : 10;
 
         ExplosionVisual explosionVisual = visualObject.AddComponent<ExplosionVisual>();
-        float blastRadius = weaponData != null ? GetExplosionWorldRadius() : impactVisualMinEndSize;
-        float endSize = Mathf.Clamp(blastRadius * impactVisualRadiusScale * 2f, impactVisualMinEndSize, impactVisualMaxEndSize);
+        float blastRadius = weaponData != null ? GetExplosionWorldRadius() : impactVisualMinEndSize * 0.5f;
+        float visualRadius = Mathf.Max(0.01f, blastRadius * impactVisualRadiusScale);
+        float endSize = weaponData != null ? visualRadius * 2f : impactVisualMinEndSize;
         Color visualColor = weaponData != null ? weaponData.ProjectileColor : Color.yellow;
         visualColor.a = impactVisualStartAlpha;
 
         explosionVisual.Configure(impactVisualStartSize, endSize, impactVisualDuration, visualColor);
+    }
+
+    private void DrawExplosionRadiusDebug(Vector3 impactPosition)
+    {
+        if (!drawExplosionRadiusDebug)
+        {
+            return;
+        }
+
+        float radius = GetExplosionWorldRadius();
+        if (radius <= 0f)
+        {
+            return;
+        }
+
+        const int segmentCount = 48;
+        Vector3 center = new Vector3(impactPosition.x, impactPosition.y, sideViewPlaneZ);
+        Vector3 previousPoint = center + new Vector3(radius, 0f, 0f);
+
+        for (int i = 1; i <= segmentCount; i++)
+        {
+            float angle = i / (float)segmentCount * Mathf.PI * 2f;
+            Vector3 currentPoint = center + new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f);
+            Debug.DrawLine(previousPoint, currentPoint, explosionRadiusDebugColor, explosionRadiusDebugDuration);
+            previousPoint = currentPoint;
+        }
     }
 
     private float GetExplosionWorldRadius()

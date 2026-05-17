@@ -48,6 +48,16 @@ public class UnitHitbox : MonoBehaviour
         return ContainsLocalPoint(WorldToLocalPoint(worldPoint));
     }
 
+    public float GetDistanceToWorldPoint(Vector2 worldPoint)
+    {
+        if (ContainsWorldPoint(worldPoint))
+        {
+            return 0f;
+        }
+
+        return GetDistanceToBoundary(worldPoint);
+    }
+
     public bool TryGetFirstHitOnSegment(Vector2 worldStart, Vector2 worldEnd, float maxStepDistance, out Vector2 worldHitPoint)
     {
         float safeStepDistance = Mathf.Max(0.01f, maxStepDistance);
@@ -114,6 +124,47 @@ public class UnitHitbox : MonoBehaviour
         return high;
     }
 
+    private float GetDistanceToBoundary(Vector2 worldPoint)
+    {
+        float safeWidth = Mathf.Max(0.01f, width);
+        float safeDepth = Mathf.Max(0.01f, depth);
+        float halfWidth = safeWidth * 0.5f;
+        float topY = localOffset.y + safeDepth * 0.5f;
+
+        Vector2 topLeft = LocalToWorldPoint2D(new Vector2(localOffset.x - halfWidth, topY));
+        Vector2 topRight = LocalToWorldPoint2D(new Vector2(localOffset.x + halfWidth, topY));
+        float closestDistance = Vector2.Distance(worldPoint, ClosestPointOnSegment(worldPoint, topLeft, topRight));
+
+        const int arcSegments = 32;
+        Vector2 previousPoint = topLeft;
+        for (int i = 1; i <= arcSegments; i++)
+        {
+            float t = i / (float)arcSegments;
+            float x = Mathf.Lerp(-halfWidth, halfWidth, t);
+            float normalizedX = x / halfWidth;
+            float y = topY - safeDepth * Mathf.Sqrt(Mathf.Clamp01(1f - normalizedX * normalizedX));
+            Vector2 currentPoint = LocalToWorldPoint2D(new Vector2(localOffset.x + x, y));
+            float segmentDistance = Vector2.Distance(worldPoint, ClosestPointOnSegment(worldPoint, previousPoint, currentPoint));
+            closestDistance = Mathf.Min(closestDistance, segmentDistance);
+            previousPoint = currentPoint;
+        }
+
+        return closestDistance;
+    }
+
+    private static Vector2 ClosestPointOnSegment(Vector2 point, Vector2 segmentStart, Vector2 segmentEnd)
+    {
+        Vector2 segment = segmentEnd - segmentStart;
+        float segmentLengthSqr = segment.sqrMagnitude;
+        if (segmentLengthSqr <= Mathf.Epsilon)
+        {
+            return segmentStart;
+        }
+
+        float t = Vector2.Dot(point - segmentStart, segment) / segmentLengthSqr;
+        return segmentStart + segment * Mathf.Clamp01(t);
+    }
+
     private Vector2 WorldToLocalPoint(Vector2 worldPoint)
     {
         Vector3 localPoint = transform.InverseTransformPoint(new Vector3(worldPoint.x, worldPoint.y, transform.position.z));
@@ -123,6 +174,12 @@ public class UnitHitbox : MonoBehaviour
     private Vector3 LocalToWorldPoint(Vector2 localPoint)
     {
         return transform.TransformPoint(new Vector3(localPoint.x, localPoint.y, 0f));
+    }
+
+    private Vector2 LocalToWorldPoint2D(Vector2 localPoint)
+    {
+        Vector3 worldPoint = LocalToWorldPoint(localPoint);
+        return new Vector2(worldPoint.x, worldPoint.y);
     }
 
     private void OnDrawGizmos()
