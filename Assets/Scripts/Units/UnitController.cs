@@ -49,7 +49,8 @@ public class UnitController : MonoBehaviour
     [SerializeField] private bool isKnockedOut;
     [SerializeField] private bool isPermanentlyDefeated;
     [SerializeField] private float localAngle = 45f;
-    [SerializeField] private float localAngleAdjustSpeed = 60f;
+    [Tooltip("Degrees per second used by human W/S aim and bot smooth aim.")]
+    [SerializeField] private float localAngleAdjustSpeed = 45f;
 
     [Header("Power Foundation")]
     [SerializeField] private float currentPower;
@@ -102,6 +103,7 @@ public class UnitController : MonoBehaviour
     public float LocalAngle => localAngle;
     public float MinLocalAngle => GetAllowedLocalAngleRange().x;
     public float MaxLocalAngle => GetAllowedLocalAngleRange().y;
+    public float LocalAngleAdjustSpeed => localAngleAdjustSpeed;
     public float CurrentPower => currentPower;
     public bool IsCharging => isCharging;
     public float PowerChargeSpeed => powerChargeSpeed;
@@ -222,6 +224,30 @@ public class UnitController : MonoBehaviour
         float previousAngle = localAngle;
         SetLocalAngle(localAngle + Mathf.Sign(direction) * localAngleAdjustSpeed * deltaTime);
         return !Mathf.Approximately(previousAngle, localAngle);
+    }
+
+    public bool TryMoveLocalAngleToward(float targetLocalAngle, float deltaTime, float toleranceDegrees)
+    {
+        if (isKnockedOut || !isActiveTurn || isCharging || deltaTime <= 0f)
+        {
+            return false;
+        }
+
+        float clampedTarget = ClampLocalAngle(targetLocalAngle);
+        float safeTolerance = Mathf.Max(0f, toleranceDegrees);
+        if (Mathf.Abs(Mathf.DeltaAngle(localAngle, clampedTarget)) <= safeTolerance)
+        {
+            SetLocalAngle(clampedTarget);
+            return true;
+        }
+
+        if (localAngleAdjustSpeed <= 0f)
+        {
+            return false;
+        }
+
+        SetLocalAngle(Mathf.MoveTowards(localAngle, clampedTarget, localAngleAdjustSpeed * deltaTime));
+        return Mathf.Abs(Mathf.DeltaAngle(localAngle, clampedTarget)) <= safeTolerance;
     }
 
     public bool TryMoveHorizontal(float direction, float deltaTime)

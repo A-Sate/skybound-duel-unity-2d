@@ -9,6 +9,7 @@ public class BotController : MonoBehaviour
     {
         Idle,
         Waiting,
+        Aiming,
         Charging,
         Fired
     }
@@ -30,6 +31,9 @@ public class BotController : MonoBehaviour
     [Header("Basic Bot Timing")]
     [SerializeField] private float minActionDelay = 0.65f;
     [SerializeField] private float maxActionDelay = 1.15f;
+
+    [Header("Smooth Aim")]
+    [SerializeField] private float aimAngleTolerance = 0.75f;
 
     [Header("Fallback Shot")]
     [FormerlySerializedAs("targetLocalAngle")]
@@ -54,8 +58,10 @@ public class BotController : MonoBehaviour
     [SerializeField] private float simulationProjectileWindAccelerationScale = ProjectileController.DefaultProjectileWindAccelerationScale;
     [SerializeField] private float simulationGroundY = ProjectileController.DefaultGroundY;
 
-    [Header("Human-Like Error")]
+    [Header("Future Difficulty Tuning")]
+    [Tooltip("Random local-angle error added after trajectory sampling. This can later map to bot difficulty.")]
     [SerializeField] private float randomAngleError = 2f;
+    [Tooltip("Random power error added after trajectory sampling. This can later map to bot difficulty.")]
     [SerializeField] private float randomPowerError = 4f;
     [SerializeField] private bool logBotActions = true;
 
@@ -81,6 +87,7 @@ public class BotController : MonoBehaviour
     {
         minActionDelay = Mathf.Max(0f, minActionDelay);
         maxActionDelay = Mathf.Max(minActionDelay, maxActionDelay);
+        aimAngleTolerance = Mathf.Max(0.01f, aimAngleTolerance);
         fallbackMinPower = Mathf.Clamp(fallbackMinPower, 0f, 100f);
         fallbackMaxPower = Mathf.Clamp(fallbackMaxPower, fallbackMinPower, 100f);
         maxSampledAngle = Mathf.Max(minSampledAngle, maxSampledAngle);
@@ -124,6 +131,10 @@ public class BotController : MonoBehaviour
 
             case BotTurnState.Waiting:
                 UpdateWaiting(Time.deltaTime);
+                break;
+
+            case BotTurnState.Aiming:
+                UpdateAiming(Time.deltaTime);
                 break;
 
             case BotTurnState.Charging:
@@ -205,7 +216,24 @@ public class BotController : MonoBehaviour
             return;
         }
 
-        ApplyPlannedAim(targetUnit);
+        unit.SetFacing(GetFacingToTarget(targetUnit));
+        turnState = BotTurnState.Aiming;
+    }
+
+    private void UpdateAiming(float deltaTime)
+    {
+        if (!IsTargetPlayable(targetUnit))
+        {
+            ResetTurnState();
+            return;
+        }
+
+        unit.SetFacing(GetFacingToTarget(targetUnit));
+        if (!unit.TryMoveLocalAngleToward(desiredLocalAngle, deltaTime, aimAngleTolerance))
+        {
+            return;
+        }
+
         if (unit.TryBeginPowerCharge())
         {
             turnState = BotTurnState.Charging;
@@ -367,12 +395,6 @@ public class BotController : MonoBehaviour
             Power = Random.Range(fallbackMinPower, fallbackMaxPower),
             TargetDistance = float.PositiveInfinity
         };
-    }
-
-    private void ApplyPlannedAim(UnitController target)
-    {
-        unit.SetFacing(GetFacingToTarget(target));
-        unit.SetLocalAngle(desiredLocalAngle);
     }
 
     private UnitFacing GetFacingToTarget(UnitController target)
