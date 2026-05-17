@@ -407,8 +407,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 432e3b5ca87a4fc1a8db8dcc4d008446, type: 2}
   - {fileID: 11400000, guid: 495c86734ca04a469b42d65b5f32c0f8, type: 2}
   selectedWeaponIndex: 0
+  unitId: blue-player-1
   playerName: Player 1
   team: 0
+  controlType: 0
   facing: 1
   isActiveTurn: 0
   hp: 750
@@ -828,6 +830,7 @@ GameObject:
   - component: {fileID: 1171695216}
   - component: {fileID: 1171695217}
   - component: {fileID: 1171695218}
+  - component: {fileID: 1171695219}
   m_Layer: 0
   m_Name: Red Unit
   m_TagString: Untagged
@@ -855,8 +858,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 432e3b5ca87a4fc1a8db8dcc4d008446, type: 2}
   - {fileID: 11400000, guid: 495c86734ca04a469b42d65b5f32c0f8, type: 2}
   selectedWeaponIndex: 0
+  unitId: red-player-2
   playerName: Player 2
   team: 1
+  controlType: 1
   facing: -1
   isActiveTurn: 0
   hp: 750
@@ -869,6 +874,30 @@ MonoBehaviour:
   slopeRange: 45
   movementUnitToWorldUnit: 0.01
   sideViewPlaneZ: 0
+--- !u!114 &1171695219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1171695209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c250c86d99825447808bea86f020c35, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BotController
+  unit: {fileID: 1171695210}
+  turnManager: {fileID: 1104935004}
+  minActionDelay: 0.65
+  maxActionDelay: 1.15
+  targetLocalAngle: 45
+  minDesiredPower: 60
+  maxDesiredPower: 80
+  logBotActions: 1
+  turnState: 0
+  targetUnit: {fileID: 0}
+  actionDelayRemaining: 0
+  desiredPower: 0
 --- !u!114 &1171695211
 MonoBehaviour:
   m_ObjectHideFlags: 0

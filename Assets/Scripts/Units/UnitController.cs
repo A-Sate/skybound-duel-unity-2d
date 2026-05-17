@@ -15,6 +15,12 @@ public enum UnitFacing
     Right = 1
 }
 
+public enum UnitControlType
+{
+    Human,
+    Bot
+}
+
 public class UnitController : MonoBehaviour
 {
     [Header("Data")]
@@ -29,6 +35,7 @@ public class UnitController : MonoBehaviour
 
     [Header("Turn And Team")]
     [SerializeField] private UnitTeam team;
+    [SerializeField] private UnitControlType controlType;
     [SerializeField] private UnitFacing facing = UnitFacing.Right;
     [SerializeField] private bool isActiveTurn;
 
@@ -76,6 +83,8 @@ public class UnitController : MonoBehaviour
     public string PlayerName => string.IsNullOrWhiteSpace(playerName) ? GetDefaultPlayerName() : playerName;
     public string DisplayName => PlayerName;
     public UnitTeam Team => team;
+    public UnitControlType ControlType => controlType;
+    public bool IsBot => controlType == UnitControlType.Bot;
     public UnitFacing Facing => facing;
     public bool IsActiveTurn => isActiveTurn;
     public int Hp => currentHp;
@@ -88,6 +97,8 @@ public class UnitController : MonoBehaviour
     public bool IsPermanentlyDefeated => isPermanentlyDefeated;
     public bool IsDead => isKnockedOut || isPermanentlyDefeated;
     public bool IsPlayable => !isKnockedOut && !isPermanentlyDefeated;
+    public bool CanAct => IsPlayable && isActiveTurn;
+    public bool CanCharge => CanAct && !isCharging && activeProjectile == null && weaponData != null;
     public float LocalAngle => localAngle;
     public float MinLocalAngle => GetAllowedLocalAngleRange().x;
     public float MaxLocalAngle => GetAllowedLocalAngleRange().y;
@@ -116,6 +127,7 @@ public class UnitController : MonoBehaviour
         view = GetComponent<UnitView>();
         ResolveWindManager();
         ApplyVehicleData();
+        EnsureBotController();
     }
 
     private void Start()
@@ -125,7 +137,7 @@ public class UnitController : MonoBehaviour
 
     private void Update()
     {
-        if (isKnockedOut || !isActiveTurn)
+        if (isKnockedOut || !isActiveTurn || controlType == UnitControlType.Bot)
         {
             return;
         }
@@ -367,6 +379,39 @@ public class UnitController : MonoBehaviour
         movement = maxMovement;
     }
 
+    public bool TryBeginPowerCharge()
+    {
+        if (!CanCharge)
+        {
+            return false;
+        }
+
+        BeginPowerCharge();
+        return true;
+    }
+
+    public bool TryContinuePowerCharge(float deltaTime)
+    {
+        if (!CanAct || !isCharging || activeProjectile != null)
+        {
+            return false;
+        }
+
+        ChargePower(deltaTime);
+        return true;
+    }
+
+    public bool TryReleasePowerCharge()
+    {
+        if (!CanAct || !isCharging)
+        {
+            return false;
+        }
+
+        EndPowerCharge();
+        return true;
+    }
+
     private void HandlePowerChargeInput(float deltaTime)
     {
         if (isKnockedOut || activeProjectile != null)
@@ -533,7 +578,7 @@ public class UnitController : MonoBehaviour
         CancelPowerCharge();
     }
 
-    private void CancelPowerCharge()
+    public void CancelPowerCharge()
     {
         isCharging = false;
         currentPower = 0f;
@@ -775,5 +820,13 @@ public class UnitController : MonoBehaviour
 
         string sanitized = new string(chars).Trim('-');
         return string.IsNullOrEmpty(sanitized) ? "unit" : sanitized;
+    }
+
+    private void EnsureBotController()
+    {
+        if (controlType == UnitControlType.Bot && GetComponent<BotController>() == null)
+        {
+            gameObject.AddComponent<BotController>();
+        }
     }
 }
