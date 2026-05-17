@@ -416,7 +416,9 @@ MonoBehaviour:
   hp: 750
   shield: 250
   localAngle: 45
-  localAngleAdjustSpeed: 45
+  localAngleAdjustSpeed: 15
+  aimTapStepDegrees: 1
+  aimHoldDelaySeconds: 0.5
   movement: 220
   maxMovement: 220
   moveSpeed: 100
@@ -867,7 +869,9 @@ MonoBehaviour:
   hp: 750
   shield: 250
   localAngle: 45
-  localAngleAdjustSpeed: 45
+  localAngleAdjustSpeed: 15
+  aimTapStepDegrees: 1
+  aimHoldDelaySeconds: 0.5
   movement: 220
   maxMovement: 220
   moveSpeed: 100

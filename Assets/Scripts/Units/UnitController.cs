@@ -50,7 +50,11 @@ public class UnitController : MonoBehaviour
     [SerializeField] private bool isPermanentlyDefeated;
     [SerializeField] private float localAngle = 45f;
     [Tooltip("Degrees per second used by human W/S aim and bot smooth aim.")]
-    [SerializeField] private float localAngleAdjustSpeed = 45f;
+    [SerializeField] private float localAngleAdjustSpeed = 15f;
+    [Tooltip("Immediate local-angle change applied once when a human player presses W or S.")]
+    [SerializeField] private float aimTapStepDegrees = 1f;
+    [Tooltip("Delay before a held human W or S key starts continuous local-angle adjustment.")]
+    [SerializeField] private float aimHoldDelaySeconds = 0.5f;
 
     [Header("Power Foundation")]
     [SerializeField] private float currentPower;
@@ -74,6 +78,10 @@ public class UnitController : MonoBehaviour
     [SerializeField] private float sideViewPlaneZ;
 
     private UnitView view;
+    private bool wasAimIncreaseHeld;
+    private bool wasAimDecreaseHeld;
+    private float aimIncreaseHoldTimer;
+    private float aimDecreaseHoldTimer;
 
     public VehicleData VehicleData => vehicleData;
     public WeaponData WeaponData => weaponData;
@@ -104,6 +112,8 @@ public class UnitController : MonoBehaviour
     public float MinLocalAngle => GetAllowedLocalAngleRange().x;
     public float MaxLocalAngle => GetAllowedLocalAngleRange().y;
     public float LocalAngleAdjustSpeed => localAngleAdjustSpeed;
+    public float AimTapStepDegrees => aimTapStepDegrees;
+    public float AimHoldDelaySeconds => aimHoldDelaySeconds;
     public float CurrentPower => currentPower;
     public bool IsCharging => isCharging;
     public float PowerChargeSpeed => powerChargeSpeed;
@@ -160,8 +170,7 @@ public class UnitController : MonoBehaviour
         float horizontalInput = ReadHorizontalInput();
         TryMoveHorizontal(horizontalInput, Time.deltaTime);
 
-        float angleInput = ReadLocalAngleInput();
-        TryAdjustLocalAngle(angleInput, Time.deltaTime);
+        HandleHumanAimInput(Time.deltaTime);
     }
 
     private void OnValidate()
@@ -171,6 +180,8 @@ public class UnitController : MonoBehaviour
         ValidateWeaponSelection();
         localAngle = ClampLocalAngle(localAngle);
         localAngleAdjustSpeed = Mathf.Max(0f, localAngleAdjustSpeed);
+        aimTapStepDegrees = Mathf.Max(0f, aimTapStepDegrees);
+        aimHoldDelaySeconds = Mathf.Max(0f, aimHoldDelaySeconds);
         currentPower = Mathf.Clamp(currentPower, 0f, 100f);
         powerChargeSpeed = Mathf.Max(0f, powerChargeSpeed);
         powerVelocityMultiplier = Mathf.Max(0f, powerVelocityMultiplier);
@@ -195,6 +206,11 @@ public class UnitController : MonoBehaviour
             CancelPowerCharge();
         }
 
+        if (!active)
+        {
+            ResetHumanAimInputState();
+        }
+
         if (becameActive)
         {
             ResetMovement();
@@ -216,7 +232,7 @@ public class UnitController : MonoBehaviour
 
     public bool TryAdjustLocalAngle(float direction, float deltaTime)
     {
-        if (isKnockedOut || !isActiveTurn || isCharging || Mathf.Approximately(direction, 0f) || localAngleAdjustSpeed <= 0f || deltaTime <= 0f)
+        if (isKnockedOut || !isActiveTurn || isCharging || activeProjectile != null || Mathf.Approximately(direction, 0f) || localAngleAdjustSpeed <= 0f || deltaTime <= 0f)
         {
             return false;
         }
@@ -228,7 +244,7 @@ public class UnitController : MonoBehaviour
 
     public bool TryMoveLocalAngleToward(float targetLocalAngle, float deltaTime, float toleranceDegrees)
     {
-        if (isKnockedOut || !isActiveTurn || isCharging || deltaTime <= 0f)
+        if (isKnockedOut || !isActiveTurn || isCharging || activeProjectile != null || deltaTime <= 0f)
         {
             return false;
         }
@@ -581,6 +597,7 @@ public class UnitController : MonoBehaviour
 
     private void BeginPowerCharge()
     {
+        ResetHumanAimInputState();
         lockedWeapon = weaponData;
         currentPower = 0f;
         isCharging = true;
@@ -740,23 +757,74 @@ public class UnitController : MonoBehaviour
         return moveLeft ? -1f : 1f;
     }
 
-    private static float ReadLocalAngleInput()
+    private void HandleHumanAimInput(float deltaTime)
     {
+        if (isKnockedOut || !isActiveTurn || isCharging || activeProjectile != null || controlType != UnitControlType.Human)
+        {
+            ResetHumanAimInputState();
+            return;
+        }
+
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null)
         {
+            ResetHumanAimInputState();
+            return;
+        }
+
+        float angleDelta = GetHumanAimInputDelta(
+            keyboard.wKey.isPressed,
+            ref wasAimIncreaseHeld,
+            ref aimIncreaseHoldTimer,
+            1f,
+            deltaTime);
+
+        angleDelta += GetHumanAimInputDelta(
+            keyboard.sKey.isPressed,
+            ref wasAimDecreaseHeld,
+            ref aimDecreaseHoldTimer,
+            -1f,
+            deltaTime);
+
+        if (Mathf.Approximately(angleDelta, 0f))
+        {
+            return;
+        }
+
+        SetLocalAngle(localAngle + angleDelta);
+    }
+
+    private float GetHumanAimInputDelta(bool isHeld, ref bool wasHeld, ref float holdTimer, float direction, float deltaTime)
+    {
+        if (!isHeld)
+        {
+            wasHeld = false;
+            holdTimer = 0f;
             return 0f;
         }
 
-        bool increaseAngle = keyboard.wKey.isPressed;
-        bool decreaseAngle = keyboard.sKey.isPressed;
+        if (!wasHeld)
+        {
+            wasHeld = true;
+            holdTimer = 0f;
+            return direction * aimTapStepDegrees;
+        }
 
-        if (increaseAngle == decreaseAngle)
+        holdTimer += Mathf.Max(0f, deltaTime);
+        if (holdTimer < aimHoldDelaySeconds)
         {
             return 0f;
         }
 
-        return increaseAngle ? 1f : -1f;
+        return direction * localAngleAdjustSpeed * Mathf.Max(0f, deltaTime);
+    }
+
+    private void ResetHumanAimInputState()
+    {
+        wasAimIncreaseHeld = false;
+        wasAimDecreaseHeld = false;
+        aimIncreaseHoldTimer = 0f;
+        aimDecreaseHoldTimer = 0f;
     }
 
     private static bool IsPowerChargeHeld()
