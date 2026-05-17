@@ -42,6 +42,7 @@ public class TurnListHudController : MonoBehaviour
         public GameObject Root;
         public Image Background;
         public Image TeamMarker;
+        public TextMeshProUGUI IndexLabel;
         public TextMeshProUGUI Label;
     }
 
@@ -191,25 +192,28 @@ public class TurnListHudController : MonoBehaviour
         Image background = slotObject.AddComponent<Image>();
         background.color = futureSlotColor;
 
+        TextMeshProUGUI indexLabel = CreateText("Turn Index", slotTransform, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0f), new Vector2(26f, 0f), slotFontSize, TextAlignmentOptions.Center, titleColor);
+
         GameObject markerObject = new GameObject("Team Marker");
         markerObject.transform.SetParent(slotObject.transform, false);
         RectTransform markerTransform = markerObject.AddComponent<RectTransform>();
         markerTransform.anchorMin = new Vector2(0f, 0f);
         markerTransform.anchorMax = new Vector2(0f, 1f);
         markerTransform.pivot = new Vector2(0f, 0.5f);
-        markerTransform.anchoredPosition = Vector2.zero;
-        markerTransform.sizeDelta = new Vector2(8f, 0f);
+        markerTransform.offsetMin = new Vector2(30f, 0f);
+        markerTransform.offsetMax = new Vector2(36f, 0f);
 
         Image marker = markerObject.AddComponent<Image>();
         marker.color = Color.white;
 
-        TextMeshProUGUI label = CreateText("Unit Name", slotTransform, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(18f, 0f), new Vector2(-8f, 0f), slotFontSize, TextAlignmentOptions.Left, titleColor);
+        TextMeshProUGUI label = CreateText("Unit Name", slotTransform, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(44f, 0f), new Vector2(-8f, 0f), slotFontSize, TextAlignmentOptions.Left, titleColor);
 
         return new TurnSlotView
         {
             Root = slotObject,
             Background = background,
             TeamMarker = marker,
+            IndexLabel = indexLabel,
             Label = label
         };
     }
@@ -282,11 +286,11 @@ public class TurnListHudController : MonoBehaviour
                 continue;
             }
 
-            ApplySlot(slot, orderedUnits[i], i == 0);
+            ApplySlot(slot, orderedUnits[i], i, i == 0);
         }
     }
 
-    private void ApplySlot(TurnSlotView slot, UnitController unit, bool isActive)
+    private void ApplySlot(TurnSlotView slot, UnitController unit, int slotIndex, bool isActive)
     {
         if (slot == null || unit == null)
         {
@@ -304,9 +308,16 @@ public class TurnListHudController : MonoBehaviour
             slot.TeamMarker.color = teamColor;
         }
 
+        if (slot.IndexLabel != null)
+        {
+            slot.IndexLabel.text = slotIndex.ToString();
+            slot.IndexLabel.color = titleColor;
+            slot.IndexLabel.fontStyle = isActive ? FontStyles.Bold : FontStyles.Normal;
+        }
+
         if (slot.Label != null)
         {
-            slot.Label.text = isActive ? $"NOW  {unit.DisplayName}" : unit.DisplayName;
+            slot.Label.text = unit.DisplayName;
             slot.Label.color = teamColor;
             slot.Label.fontStyle = isActive ? FontStyles.Bold : FontStyles.Normal;
         }
