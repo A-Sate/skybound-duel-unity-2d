@@ -260,6 +260,11 @@ public class UnitController : MonoBehaviour
 
     public void ApplyDamage(float amount)
     {
+        ApplyDamage(amount, "damage");
+    }
+
+    public void ApplyDamage(float amount, string damageLabel)
+    {
         if (isKnockedOut)
         {
             return;
@@ -268,7 +273,7 @@ public class UnitController : MonoBehaviour
         int finalDamage = Mathf.Max(0, Mathf.RoundToInt(amount));
         if (finalDamage <= 0)
         {
-            Debug.Log($"{name} took 0 damage. Shield: {currentShield}/{maxShield}, HP: {currentHp}/{maxHp}");
+            Debug.Log($"{name} took {FormatDamageDescription(0, damageLabel)}. Shield: {currentShield}/{maxShield}, HP: {currentHp}/{maxHp}");
             return;
         }
 
@@ -278,11 +283,17 @@ public class UnitController : MonoBehaviour
         int remainingDamage = finalDamage - absorbedByShield;
         currentHp = Mathf.Max(0, currentHp - remainingDamage);
 
-        Debug.Log($"{name} took {finalDamage} damage. Shield: {currentShield}/{maxShield}, HP: {currentHp}/{maxHp}");
+        Debug.Log($"{name} took {FormatDamageDescription(finalDamage, damageLabel)}. Shield: {currentShield}/{maxShield}, HP: {currentHp}/{maxHp}");
         if (currentHp <= 0)
         {
             KnockOut();
         }
+    }
+
+    private static string FormatDamageDescription(int amount, string damageLabel)
+    {
+        string normalizedLabel = string.IsNullOrWhiteSpace(damageLabel) ? "damage" : damageLabel.Trim();
+        return normalizedLabel == "damage" ? $"{amount} damage" : $"{amount} {normalizedLabel}";
     }
 
     public void KnockOut()
