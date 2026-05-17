@@ -199,6 +199,40 @@ public class TurnManager : MonoBehaviour
         return false;
     }
 
+    public int GetOrderedPlayableUnits(List<UnitController> orderedUnits, int maxCount = -1)
+    {
+        if (orderedUnits == null)
+        {
+            return 0;
+        }
+
+        orderedUnits.Clear();
+        if (units.Count == 0)
+        {
+            return 0;
+        }
+
+        int lookupStartIndex = activeUnitIndex >= 0 ? activeUnitIndex : 0;
+        int startIndex = IsUnitPlayable(ActiveUnit) ? activeUnitIndex : FindNextPlayableUnitIndex(lookupStartIndex);
+        if (startIndex < 0)
+        {
+            return 0;
+        }
+
+        int safeMaxCount = maxCount <= 0 ? units.Count : Mathf.Min(maxCount, units.Count);
+        for (int offset = 0; offset < units.Count && orderedUnits.Count < safeMaxCount; offset++)
+        {
+            int candidateIndex = (startIndex + offset) % units.Count;
+            UnitController candidate = units[candidateIndex];
+            if (IsUnitPlayable(candidate))
+            {
+                orderedUnits.Add(candidate);
+            }
+        }
+
+        return orderedUnits.Count;
+    }
+
     private int ConsumeTeamLife(UnitTeam team)
     {
         int livesRemaining = Mathf.Max(0, GetTeamLives(team) - 1);

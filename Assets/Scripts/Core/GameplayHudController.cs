@@ -8,6 +8,7 @@ public class GameplayHudController : MonoBehaviour
     [Header("References")]
     [SerializeField] private TurnManager turnManager;
     [SerializeField] private Canvas canvas;
+    [SerializeField] private TurnListHudController turnListHudController;
 
     [Header("Layout")]
     [SerializeField] private Vector2 panelSize = new Vector2(860f, 104f);
@@ -67,6 +68,11 @@ public class GameplayHudController : MonoBehaviour
         {
             turnManager = FindAnyObjectByType<TurnManager>();
         }
+
+        if (turnListHudController == null)
+        {
+            turnListHudController = GetComponent<TurnListHudController>();
+        }
     }
 
     private void EnsureHud()
@@ -78,6 +84,7 @@ public class GameplayHudController : MonoBehaviour
 
         if (panelRoot != null)
         {
+            EnsureTurnListHud();
             return;
         }
 
@@ -91,6 +98,22 @@ public class GameplayHudController : MonoBehaviour
         blueLivesText = CreateText("Blue Lives Text", panelRoot, new Vector2(0.61f, 0.55f), new Vector2(0.78f, 0.9f), labelFontSize, TextAlignmentOptions.Left, blueTeamColor);
         redLivesText = CreateText("Red Lives Text", panelRoot, new Vector2(0.61f, 0.13f), new Vector2(0.78f, 0.48f), labelFontSize, TextAlignmentOptions.Left, redTeamColor);
         passText = CreatePassHint(panelRoot);
+        EnsureTurnListHud();
+    }
+
+    private void EnsureTurnListHud()
+    {
+        if (turnListHudController == null)
+        {
+            turnListHudController = GetComponent<TurnListHudController>();
+        }
+
+        if (turnListHudController == null)
+        {
+            turnListHudController = gameObject.AddComponent<TurnListHudController>();
+        }
+
+        turnListHudController.SetTurnManager(turnManager);
     }
 
     private void CreateCanvas()
